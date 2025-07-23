@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import InspirationalBookmarkPage from '../Bookmarks/Inspirational.jsx';
 import FloralBookmarksPage from '../Bookmarks/Floral.jsx';
 import RegularCardPage from '../Cards/Regular.jsx';
+import MiniCardPage from '../Cards/Mini.jsx';
+import SpidermanCrochetPage from '../Crochet/spiderman.jsx'; // Add this import
 
 const ProductsShowcase = () => {
   const [activeCategory, setActiveCategory] = useState('All');
-  const [currentPage, setCurrentPage] = useState('showcase'); // Track current page
+  const [currentPage, setCurrentPage] = useState('showcase');
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  // Product categories data with navigation paths
+  // Updated product categories data - fixed Spiderman entry
   const productCategories = {
     'Letters': {
       items: [
@@ -21,7 +23,7 @@ const ProductsShowcase = () => {
     },
     'Cards': {
       items: [
-        { name: 'Mini Cards', price: '₹149', originalPrice: '₹199', discount: '25% OFF', image: '/src/Products/Cards/Images/Mini.png', component: 'MiniCardsPage', route: '/products/cards/mini', bestseller: true },
+        { name: 'Mini Cards', price: '₹149', originalPrice: '₹199', discount: '25% OFF', image: '/src/Products/Cards/Images/Mini.png', component: 'MiniCardPage', route: '/products/cards/Mini', bestseller: true },
         { name: 'Regular Card', price: '₹199', originalPrice: '₹249', discount: '20% OFF', image: '/src/Products/Cards/Images/Regular.png', component: 'RegularCardPage', route: '/products/cards/regular' }
       ],
       page: 'cards',
@@ -31,7 +33,8 @@ const ProductsShowcase = () => {
       items: [
         { name: 'Tulip', price: '₹399', originalPrice: '₹499', discount: '20% OFF', image: '/src/Products/Crochet/Images/tulip.png', component: 'TulipPage', route: '/products/crochet/tulip', bestseller: true },
         { name: 'Tulip Keychain', price: '₹199', originalPrice: '₹249', discount: '20% OFF', image: '/src/Products/Crochet/Images/tulip_keychain.png', component: 'TulipKeychainPage', route: '/products/crochet/tulip-keychain' },
-        { name: 'Spiderman', price: '₹599', originalPrice: '₹699', discount: '14% OFF', image: '/Crochet/images/spiderman.jpg', component: 'SpidermanPage', route: '/products/crochet/spiderman' },
+        // Fixed Spiderman entry with correct data
+        { name: 'Spider-Man Crochet', price: '₹299', originalPrice: '₹399', discount: '25% OFF', image: '/src/Products/Crochet/Images/Spiderman.png', component: 'SpidermanCrochetPage', route: '/products/crochet/spiderman', bestseller: true },
         { name: 'Sunflower', price: '₹449', originalPrice: '₹549', discount: '18% OFF', image: '/Crochet/images/sunflower.jpg', component: 'SunflowerPage', route: '/products/crochet/sunflower' }
       ],
       page: 'crochet',
@@ -90,32 +93,37 @@ const ProductsShowcase = () => {
     })) || [];
   };
 
-  const handleProductClick = (product) => {
+  // Updated navigation function with Spiderman support
+  const navigateToProductPage = (product) => {
     console.log(`Viewing product: ${product.name}`);
     setSelectedProduct(product);
-    setCurrentPage('product-detail');
-  };
-
-  // Updated customize click handler with navigation for bookmarks and regular card
-  const handleCustomizeClick = (product, e) => {
-    e.stopPropagation();
-    console.log(`Customizing product: ${product.name}`);
     
-    // Set the selected product and navigate to customization page
-    setSelectedProduct(product);
-    
-    // Navigate to specific product customization page based on product name
+    // Navigate to specific product page based on product name
     if (product.name === 'Inspirational Bookmarks') {
       setCurrentPage('inspirational-bookmarks');
     } else if (product.name === 'Floral Bookmarks') {
       setCurrentPage('floral-bookmarks');
     } else if (product.name === 'Regular Card') {
       setCurrentPage('regular-card');
+    } else if (product.name === 'Mini Cards') {
+      setCurrentPage('mini-card');
+    } else if (product.name === 'Spider-Man Crochet') { // Updated condition
+      setCurrentPage('spiderman-crochet');
     } else {
-      // For other products, you can add more conditions here
-      setCurrentPage('customize-general');
-      console.log(`Customize page for ${product.name} not implemented yet`);
+      // For products without specific pages, show generic product detail page
+      setCurrentPage('product-detail');
+      console.log(`Specific page for ${product.name} not implemented yet, showing generic detail page`);
     }
+  };
+
+  const handleProductClick = (product) => {
+    navigateToProductPage(product);
+  };
+
+  const handleCustomizeClick = (product, e) => {
+    e.stopPropagation();
+    console.log(`Customizing product: ${product.name}`);
+    navigateToProductPage(product);
   };
 
   const handleAddToCart = (product, e) => {
@@ -140,9 +148,17 @@ const ProductsShowcase = () => {
     return <FloralBookmarksPage onBack={handleBackToShowcase} product={selectedProduct} />;
   }
 
-  // Add navigation for Regular Card
   if (currentPage === 'regular-card') {
     return <RegularCardPage onBack={handleBackToShowcase} product={selectedProduct} />;
+  }
+
+  if (currentPage === 'mini-card') {
+    return <MiniCardPage onBack={handleBackToShowcase} product={selectedProduct} />;
+  }
+
+  // Added Spiderman crochet page navigation
+  if (currentPage === 'spiderman-crochet') {
+    return <SpidermanCrochetPage onBack={handleBackToShowcase} product={selectedProduct} />;
   }
 
   if (currentPage === 'product-detail') {

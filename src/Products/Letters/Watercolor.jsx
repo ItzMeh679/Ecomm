@@ -198,12 +198,19 @@ const WatercolorLetterPage = () => {
   // Styles object
   const styles = {
     page: {
-      maxWidth: '1400px',
-      margin: '0 auto',
-      padding: '24px',
-      background: 'linear-gradient(135deg, rgb(239 246 255), rgb(250 245 255))',
+        width: '100vw',
       minHeight: '100vh',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+      margin: '0',
+      padding: '0',
+      position: 'relative',
+      left: '50%',
+      right: '50%',
+      marginLeft: '-50vw',
+      marginRight: '-50vw',
+      background: 'linear-gradient(135deg, rgb(239 246 255), rgb(250 245 255))',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      backgroundAttachment: 'fixed',
+      boxSizing: 'border-box'
     },
     breadcrumb: {
       fontSize: '14px',

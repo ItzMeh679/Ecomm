@@ -7,6 +7,7 @@ import SpidermanCrochetPage from '../Crochet/spiderman.jsx';
 import TulipCrochetPage from '../Crochet/Tuplip.jsx'; 
 import TulipKeychainPage from '../Crochet/TulipKeychain.jsx'; 
 import SunflowerPage from '../Crochet/sunflower.jsx'; 
+import WatercolorLetterPage from '../Letters/Watercolor.jsx'
 
 const ProductsShowcase = () => {
   const [activeCategory, setActiveCategory] = useState('All');
@@ -17,7 +18,7 @@ const ProductsShowcase = () => {
   const productCategories = {
     'Letters': {
       items: [
-        { name: 'Watercolor Letter', price: '₹299', originalPrice: '₹399', discount: '25% OFF', image: '/src/Products/Letters/Images/Watercolor.png', component: 'WatercolorPage', route: '/products/letters/watercolor' },
+        { name: 'Watercolor Letter', price: '₹299', originalPrice: '₹399', discount: '25% OFF', image: '/src/Products/Letters/Images/Watercolor.png', component: 'WatercolorLetterPage', route: '/products/Letters/Watercolor.jsx' },
         { name: 'Vintage Letter', price: '₹349', originalPrice: '₹449', discount: '22% OFF', image: '/src/Products/Letters/Images/Vintage.png', component: 'VintagePage', route: '/products/letters/vintage' },
         { name: 'Matte Black Letter', price: '₹279', originalPrice: '₹349', discount: '20% OFF', image: '/src/Products/Letters/images/matteblack.jpg', component: 'MatteBlackPage', route: '/products/letters/matte-black' }
       ],
@@ -102,26 +103,28 @@ const ProductsShowcase = () => {
     
 
 if (product.name === 'Inspirational Bookmarks') {
-  setCurrentPage('inspirational-bookmarks');
-} else if (product.name === 'Floral Bookmarks') {
-  setCurrentPage('floral-bookmarks');
-} else if (product.name === 'Regular Card') {
-  setCurrentPage('regular-card');
-} else if (product.name === 'Mini Cards') {
-  setCurrentPage('mini-card');
-} else if (product.name === 'Spider-Man Crochet') {
-  setCurrentPage('spiderman-crochet');
-} else if (product.name === 'Tulip') {
-  setCurrentPage('tulip-crochet');
-} else if (product.name === 'Tulip Keychain') {
-  setCurrentPage('tulip-keychain');
-} else if (product.name === 'Sunflower') { 
-  setCurrentPage('sunflower-crochet');
-} else {
-  // For products without specific pages, show generic product detail page
-  setCurrentPage('product-detail');
-  console.log(`Specific page for ${product.name} not implemented yet, showing generic detail page`);
-}
+    setCurrentPage('inspirational-bookmarks');
+  } else if (product.name === 'Floral Bookmarks') {
+    setCurrentPage('floral-bookmarks');
+  } else if (product.name === 'Regular Card') {
+    setCurrentPage('regular-card');
+  } else if (product.name === 'Mini Cards') {
+    setCurrentPage('mini-card');
+  } else if (product.name === 'Spider-Man Crochet') {
+    setCurrentPage('spiderman-crochet');
+  } else if (product.name === 'Tulip') {
+    setCurrentPage('tulip-crochet');
+  } else if (product.name === 'Tulip Keychain') {
+    setCurrentPage('tulip-keychain');
+  } else if (product.name === 'Sunflower') { 
+    setCurrentPage('sunflower-crochet');
+  } else if (product.name === 'Watercolor Letter') { 
+    setCurrentPage('watercolor-letter'); // Fixed: Changed from 'sunflower-crochet' to 'watercolor-letter'
+  } else {
+    // For products without specific pages, show generic product detail page
+    setCurrentPage('product-detail');
+    console.log(`Specific page for ${product.name} not implemented yet, showing generic detail page`);
+  }
   };
 
   const handleProductClick = (product) => {
@@ -178,6 +181,11 @@ if (currentPage === 'tulip-keychain') {
 
 if (currentPage === 'sunflower-crochet') {
   return <SunflowerPage onBack={handleBackToShowcase} product={selectedProduct} />;
+}
+
+// Added Watercolor Letter page navigation
+if (currentPage === 'watercolor-letter') {
+  return <WatercolorLetterPage onBack={handleBackToShowcase} product={selectedProduct} />;
 }
 
 if (currentPage === 'product-detail') {

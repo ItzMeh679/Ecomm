@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import InspirationalBookmarkPage from '../Bookmarks/Inspirational.jsx';
 import FloralBookmarksPage from '../Bookmarks/Floral.jsx';
 import RegularCardPage from '../Cards/Regular.jsx';
@@ -8,18 +8,20 @@ import TulipCrochetPage from '../Crochet/Tuplip.jsx';
 import TulipKeychainPage from '../Crochet/TulipKeychain.jsx'; 
 import SunflowerPage from '../Crochet/sunflower.jsx'; 
 import WatercolorLetterPage from '../Letters/Watercolor.jsx'
+import VintageLetterPage from '../Letters/Vintage.jsx'
 
-const ProductsShowcase = () => {
-  const [activeCategory, setActiveCategory] = useState('All');
+const ProductsShowcase = ({ initialCategory = 'All', searchQuery = '', navigationData = null }) => {
+  const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [currentPage, setCurrentPage] = useState('showcase');
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [filteredProducts, setFilteredProducts] = useState([]);
 
   // Updated product categories data - fixed Spiderman entry
   const productCategories = {
     'Letters': {
       items: [
         { name: 'Watercolor Letter', price: '₹299', originalPrice: '₹399', discount: '25% OFF', image: '/src/Products/Letters/Images/Watercolor.png', component: 'WatercolorLetterPage', route: '/products/Letters/Watercolor.jsx' },
-        { name: 'Vintage Letter', price: '₹349', originalPrice: '₹449', discount: '22% OFF', image: '/src/Products/Letters/Images/Vintage.png', component: 'VintagePage', route: '/products/letters/vintage' },
+        { name: 'Vintage Letter', price: '₹349', originalPrice: '₹449', discount: '22% OFF', image: '/src/Products/Letters/Images/Vintage.png', component: 'VintageLetterPage', route: '/Products/Letters/Vintage.jsx' },
         { name: 'Matte Black Letter', price: '₹279', originalPrice: '₹349', discount: '20% OFF', image: '/src/Products/Letters/images/matteblack.jpg', component: 'MatteBlackPage', route: '/products/letters/matte-black' }
       ],
       page: 'letters',
@@ -53,22 +55,88 @@ const ProductsShowcase = () => {
     },
     'Hampers': {
       items: [
-        { name: 'Birthday Hamper', price: '₹899', originalPrice: '₹1199', discount: '25% OFF', image: '/Hampers/images/birthday.jpg', component: 'BirthdayHamperPage', route: '/products/hampers/birthday' },
-        { name: 'Christmas Hamper', price: '₹1299', originalPrice: '₹1599', discount: '19% OFF', image: '/Hampers/images/christmass.jpg', component: 'ChristmasHamperPage', route: '/products/hampers/christmas', bestseller: true },
-        { name: 'Diwali Hamper', price: '₹999', originalPrice: '₹1299', discount: '23% OFF', image: '/Hampers/images/diwali.jpg', component: 'DiwaliHamperPage', route: '/products/hampers/diwali' },
-        { name: 'Rakshabandhan Hamper', price: '₹799', originalPrice: '₹999', discount: '20% OFF', image: '/Hampers/images/rakshabandhan.jpg', component: 'RakshabandhanHamperPage', route: '/products/hampers/rakshabandhan' }
+        { name: 'Birthday', price: '₹899', originalPrice: '₹1199', discount: '25% OFF', image: '/Hampers/images/birthday.jpg', component: 'BirthdayHamperPage', route: '/products/hampers/birthday' },
+        { name: 'Christmas', price: '₹1299', originalPrice: '₹1599', discount: '19% OFF', image: '/Hampers/images/christmass.jpg', component: 'ChristmasHamperPage', route: '/products/hampers/christmas', bestseller: true },
+        { name: 'Diwali', price: '₹999', originalPrice: '₹1299', discount: '23% OFF', image: '/Hampers/images/diwali.jpg', component: 'DiwaliHamperPage', route: '/products/hampers/diwali' },
+        { name: 'Rakshabandhan', price: '₹799', originalPrice: '₹999', discount: '20% OFF', image: '/Hampers/images/rakshabandhan.jpg', component: 'RakshabandhanHamperPage', route: '/products/hampers/rakshabandhan' }
       ],
       page: 'hampers',
       customizable: true
     },
     'Extras': {
       items: [
-        { name: 'Glass Bottle Add-on', price: '₹149', originalPrice: '₹199', discount: '25% OFF', image: '/Decorative/images/glassbottle.jpg', component: 'GlassBottleAddonPage', route: '/products/extras/glass-bottle' },
-        { name: 'Packaging Add-on', price: '₹99', originalPrice: '₹149', discount: '33% OFF', image: '/src/Products/Decorative/Images/packaging.png', component: 'PackagingAddonPage', route: '/products/extras/packaging' }
+        { name: 'Glass Bottle', price: '₹149', originalPrice: '₹199', discount: '25% OFF', image: '/Decorative/images/glassbottle.jpg', component: 'GlassBottleAddonPage', route: '/products/extras/glass-bottle' },
+        { name: 'Subtle Packaging', price: '₹99', originalPrice: '₹149', discount: '33% OFF', image: '/src/Products/Decorative/Images/packaging.png', component: 'PackagingAddonPage', route: '/products/extras/packaging' }
       ],
       page: 'extras',
       customizable: true
     }
+  };
+
+  // Handle navigation data from navbar (for dropdown clicks)
+  useEffect(() => {
+    if (navigationData && navigationData.product) {
+      // Direct product navigation from navbar dropdown
+      const product = findProductByName(navigationData.product);
+      if (product) {
+        navigateToProductPage(product);
+      }
+    } else if (navigationData && navigationData.category) {
+      // Category navigation from navbar
+      setActiveCategory(navigationData.category);
+      setCurrentPage('showcase');
+    }
+  }, [navigationData]);
+
+  // Handle search query from navbar
+  useEffect(() => {
+    if (searchQuery && searchQuery.trim()) {
+      handleSearchFilter(searchQuery);
+    } else {
+      setFilteredProducts([]);
+    }
+  }, [searchQuery]);
+
+  // Handle initial category from navbar
+  useEffect(() => {
+    if (initialCategory && initialCategory !== 'All') {
+      setActiveCategory(initialCategory);
+    }
+  }, [initialCategory]);
+
+  // Find product by name (for search and dropdown navigation)
+  const findProductByName = (productName) => {
+    for (const [categoryName, category] of Object.entries(productCategories)) {
+      const product = category.items.find(item => 
+        item.name.toLowerCase().includes(productName.toLowerCase()) ||
+        productName.toLowerCase().includes(item.name.toLowerCase())
+      );
+      if (product) {
+        return { ...product, category: categoryName, categoryInfo: category };
+      }
+    }
+    return null;
+  };
+
+  // Handle search filtering
+  const handleSearchFilter = (query) => {
+    const searchResults = [];
+    const searchTerm = query.toLowerCase().trim();
+    
+    Object.entries(productCategories).forEach(([categoryName, category]) => {
+      category.items.forEach(item => {
+        if (item.name.toLowerCase().includes(searchTerm)) {
+          searchResults.push({ 
+            ...item, 
+            category: categoryName, 
+            categoryInfo: category 
+          });
+        }
+      });
+    });
+    
+    setFilteredProducts(searchResults);
+    setActiveCategory('Search Results');
   };
 
   // Get all products or filtered by category
@@ -83,6 +151,17 @@ const ProductsShowcase = () => {
   };
 
   const getFilteredProducts = () => {
+    // If we have search results, show those
+    if (filteredProducts.length > 0 && activeCategory === 'Search Results') {
+      return filteredProducts;
+    }
+    
+    // If search query but no results, show empty array
+    if (searchQuery && searchQuery.trim() && activeCategory === 'Search Results') {
+      return [];
+    }
+    
+    // Regular category filtering
     if (activeCategory === 'All') {
       return getAllProducts();
     }
@@ -96,35 +175,39 @@ const ProductsShowcase = () => {
     })) || [];
   };
 
-  // Updated navigation function with Spiderman support
+  // Updated navigation function with better product matching
   const navigateToProductPage = (product) => {
     console.log(`Viewing product: ${product.name}`);
     setSelectedProduct(product);
     
-
-if (product.name === 'Inspirational Bookmarks') {
-    setCurrentPage('inspirational-bookmarks');
-  } else if (product.name === 'Floral Bookmarks') {
-    setCurrentPage('floral-bookmarks');
-  } else if (product.name === 'Regular Card') {
-    setCurrentPage('regular-card');
-  } else if (product.name === 'Mini Cards') {
-    setCurrentPage('mini-card');
-  } else if (product.name === 'Spider-Man Crochet') {
-    setCurrentPage('spiderman-crochet');
-  } else if (product.name === 'Tulip') {
-    setCurrentPage('tulip-crochet');
-  } else if (product.name === 'Tulip Keychain') {
-    setCurrentPage('tulip-keychain');
-  } else if (product.name === 'Sunflower') { 
-    setCurrentPage('sunflower-crochet');
-  } else if (product.name === 'Watercolor Letter') { 
-    setCurrentPage('watercolor-letter'); // Fixed: Changed from 'sunflower-crochet' to 'watercolor-letter'
-  } else {
-    // For products without specific pages, show generic product detail page
-    setCurrentPage('product-detail');
-    console.log(`Specific page for ${product.name} not implemented yet, showing generic detail page`);
-  }
+    // Normalize product name for comparison
+    const productName = product.name.toLowerCase();
+    
+    if (productName.includes('inspirational') && productName.includes('bookmark')) {
+      setCurrentPage('inspirational-bookmarks');
+    } else if (productName.includes('floral') && productName.includes('bookmark')) {
+      setCurrentPage('floral-bookmarks');
+    } else if (productName.includes('regular') && productName.includes('card')) {
+      setCurrentPage('regular-card');
+    } else if (productName.includes('mini') && productName.includes('card')) {
+      setCurrentPage('mini-card');
+    } else if (productName.includes('spider') || productName.includes('spiderman')) {
+      setCurrentPage('spiderman-crochet');
+    } else if (productName === 'tulip' || (productName.includes('tulip') && !productName.includes('keychain'))) {
+      setCurrentPage('tulip-crochet');
+    } else if (productName.includes('tulip') && productName.includes('keychain')) {
+      setCurrentPage('tulip-keychain');
+    } else if (productName.includes('sunflower')) { 
+      setCurrentPage('sunflower-crochet');
+    } else if (productName.includes('watercolor') && productName.includes('letter')) { 
+      setCurrentPage('watercolor-letter');
+    } else if (productName.includes('vintage') && productName.includes('letter')) { 
+      setCurrentPage('vintage-letter');
+    } else {
+      // For products without specific pages, show generic product detail page
+      setCurrentPage('product-detail');
+      console.log(`Specific page for ${product.name} not implemented yet, showing generic detail page`);
+    }
   };
 
   const handleProductClick = (product) => {
@@ -146,79 +229,137 @@ if (product.name === 'Inspirational Bookmarks') {
   const handleBackToShowcase = () => {
     setCurrentPage('showcase');
     setSelectedProduct(null);
+    setFilteredProducts([]);
+    if (searchQuery) {
+      setActiveCategory('All');
+    }
+  };
+
+  // Handle category change
+  const handleCategoryChange = (category) => {
+    setActiveCategory(category);
+    setFilteredProducts([]);
+    setCurrentPage('showcase');
   };
 
   const categories = ['All', 'Best Sellers', ...Object.keys(productCategories)];
+  
+  // Add search results category if we have search results
+  if (searchQuery && searchQuery.trim()) {
+    if (!categories.includes('Search Results')) {
+      categories.unshift('Search Results');
+    }
+  }
 
- 
-if (currentPage === 'inspirational-bookmarks') {
-  return <InspirationalBookmarkPage onBack={handleBackToShowcase} product={selectedProduct} />;
-}
+  // Product page routing
+  if (currentPage === 'inspirational-bookmarks') {
+    return <InspirationalBookmarkPage onBack={handleBackToShowcase} product={selectedProduct} />;
+  }
 
-if (currentPage === 'floral-bookmarks') {
-  return <FloralBookmarksPage onBack={handleBackToShowcase} product={selectedProduct} />;
-}
+  if (currentPage === 'floral-bookmarks') {
+    return <FloralBookmarksPage onBack={handleBackToShowcase} product={selectedProduct} />;
+  }
 
-if (currentPage === 'regular-card') {
-  return <RegularCardPage onBack={handleBackToShowcase} product={selectedProduct} />;
-}
+  if (currentPage === 'regular-card') {
+    return <RegularCardPage onBack={handleBackToShowcase} product={selectedProduct} />;
+  }
 
-if (currentPage === 'mini-card') {
-  return <MiniCardPage onBack={handleBackToShowcase} product={selectedProduct} />;
-}
+  if (currentPage === 'mini-card') {
+    return <MiniCardPage onBack={handleBackToShowcase} product={selectedProduct} />;
+  }
 
-if (currentPage === 'spiderman-crochet') {
-  return <SpidermanCrochetPage onBack={handleBackToShowcase} product={selectedProduct} />;
-}
+  if (currentPage === 'spiderman-crochet') {
+    return <SpidermanCrochetPage onBack={handleBackToShowcase} product={selectedProduct} />;
+  }
 
-if (currentPage === 'tulip-crochet') {
-  return <TulipCrochetPage onBack={handleBackToShowcase} product={selectedProduct} />;
-}
+  if (currentPage === 'tulip-crochet') {
+    return <TulipCrochetPage onBack={handleBackToShowcase} product={selectedProduct} />;
+  }
 
-if (currentPage === 'tulip-keychain') {
-  return <TulipKeychainPage onBack={handleBackToShowcase} product={selectedProduct} />;
-}
+  if (currentPage === 'tulip-keychain') {
+    return <TulipKeychainPage onBack={handleBackToShowcase} product={selectedProduct} />;
+  }
 
-if (currentPage === 'sunflower-crochet') {
-  return <SunflowerPage onBack={handleBackToShowcase} product={selectedProduct} />;
-}
+  if (currentPage === 'sunflower-crochet') {
+    return <SunflowerPage onBack={handleBackToShowcase} product={selectedProduct} />;
+  }
 
-// Added Watercolor Letter page navigation
-if (currentPage === 'watercolor-letter') {
-  return <WatercolorLetterPage onBack={handleBackToShowcase} product={selectedProduct} />;
-}
+  if (currentPage === 'watercolor-letter') {
+    return <WatercolorLetterPage onBack={handleBackToShowcase} product={selectedProduct} />;
+  }
 
-if (currentPage === 'product-detail') {
-  return <ProductDetailPage onBack={handleBackToShowcase} product={selectedProduct} onCustomize={handleCustomizeClick} />;
-}
+  if (currentPage === 'vintage-letter') {
+    return <VintageLetterPage onBack={handleBackToShowcase} product={selectedProduct} />;
+  }
+
+  if (currentPage === 'product-detail') {
+    return <ProductDetailPage onBack={handleBackToShowcase} product={selectedProduct} onCustomize={handleCustomizeClick} />;
+  }
+
+  const displayedProducts = getFilteredProducts();
+
   return (
     <div className="products-showcase">
       {/* Header */}
       <div className="showcase-header">
-        <h1>Our Products</h1>
-        <p>Discover our handcrafted collection of personalized gifts</p>
+        <h1>
+          {activeCategory === 'Search Results' ? 
+            `Search Results${searchQuery ? ` for "${searchQuery}"` : ''}` : 
+            activeCategory === 'All' ? 'Our Products' : activeCategory
+          }
+        </h1>
+        <p>
+          {activeCategory === 'Search Results' ? 
+            `Found ${displayedProducts.length} product${displayedProducts.length !== 1 ? 's' : ''}` :
+            'Discover our handcrafted collection of personalized gifts'
+          }
+        </p>
       </div>
 
       {/* Products Section */}
       <section className="products">
         <div className="container">
-          {/* Category Navigation */}
-          <div className="categories-wrapper">
-            <div className="product-categories">
-              {categories.map(category => (
-                <button
-                  key={category}
-                  className={`category-btn ${activeCategory === category ? 'active' : ''}`}
-                  onClick={() => setActiveCategory(category)}
-                >
-                  <span className="category-text">{category}</span>
-                </button>
-              ))}
+          {/* Category Navigation - Hide during search */}
+          {!searchQuery && (
+            <div className="categories-wrapper">
+              <div className="product-categories">
+                {categories.filter(cat => cat !== 'Search Results').map(category => (
+                  <button
+                    key={category}
+                    className={`category-btn ${activeCategory === category ? 'active' : ''}`}
+                    onClick={() => handleCategoryChange(category)}
+                  >
+                    <span className="category-text">{category}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Search Results Info */}
+          {searchQuery && activeCategory === 'Search Results' && (
+            <div className="search-info">
+              <div className="search-header">
+                <h3>Search Results for "{searchQuery}"</h3>
+                <p>{displayedProducts.length} product{displayedProducts.length !== 1 ? 's' : ''} found</p>
+              </div>
+              {displayedProducts.length > 0 && (
+                <button 
+                  className="clear-search-btn"
+                  onClick={() => {
+                    setFilteredProducts([]);
+                    setActiveCategory('All');
+                    // Note: searchQuery clearing should be handled by parent component
+                  }}
+                >
+                  Clear Search
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Category Info */}
-          {activeCategory !== 'All' && activeCategory !== 'Best Sellers' && productCategories[activeCategory] && (
+          {!searchQuery && activeCategory !== 'All' && activeCategory !== 'Best Sellers' && productCategories[activeCategory] && (
             <div className="category-info">
               <div className="category-header">
                 <h3>{activeCategory}</h3>
@@ -239,7 +380,7 @@ if (currentPage === 'product-detail') {
 
           {/* Products Grid */}
           <div className="product-grid">
-            {getFilteredProducts().map((product, index) => (
+            {displayedProducts.map((product, index) => (
               <div 
                 key={`${product.category}-${product.name}-${index}`}
                 className={`product-card ${product.bestseller ? 'bestseller' : ''}`}
@@ -260,6 +401,9 @@ if (currentPage === 'product-detail') {
                   <h3 className="product-title">
                     {product.name}
                   </h3>
+                  {searchQuery && (
+                    <p className="product-category">from {product.category}</p>
+                  )}
                   <div className="product-price">
                     <span className="current-price">{product.price}</span>
                     {product.originalPrice && (
@@ -289,10 +433,19 @@ if (currentPage === 'product-detail') {
             ))}
           </div>
 
-          {getFilteredProducts().length === 0 && (
+          {displayedProducts.length === 0 && (
             <div className="no-products">
-              <p>No products found in this category.</p>
-              <p className="sub-text">Check back soon for new arrivals!</p>
+              {searchQuery ? (
+                <>
+                  <p>No products found for "{searchQuery}"</p>
+                  <p className="sub-text">Try searching with different keywords or browse our categories</p>
+                </>
+              ) : (
+                <>
+                  <p>No products found in this category.</p>
+                  <p className="sub-text">Check back soon for new arrivals!</p>
+                </>
+              )}
             </div>
           )}
         </div>

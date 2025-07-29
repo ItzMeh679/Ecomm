@@ -1,36 +1,67 @@
-
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
-import Navbar from './NavBar/navbar' // Import your Navbar component
+import Navbar from './NavBar/navbar'
+import ProductsShowcase from './Products/Main/MainProducts.jsx'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState('home')
+  const [navigationData, setNavigationData] = useState(null)
+  const [isShowingProductPage, setIsShowingProductPage] = useState(false)
+
+  const handleNavigation = (page, data = null) => {
+    setCurrentPage(page)
+    setNavigationData(data)
+    setIsShowingProductPage(false) // Reset when navigating from App
+  }
+
+  const handleProductPageState = (isShowing) => {
+    setIsShowingProductPage(isShowing)
+  }
+
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 'home':
+        return (
+          <div>
+            {/* Your home page content */}
+            <ProductsShowcase 
+              navigationData={navigationData} 
+              onNavigate={handleNavigation}
+            />
+          </div>
+        )
+      case 'products':
+      case 'search':
+        return (
+          <ProductsShowcase 
+            initialCategory={navigationData?.category || 'All'}
+            searchQuery={navigationData?.query || ''}
+            navigationData={navigationData}
+            onNavigate={handleNavigation}
+          />
+        )
+      case 'about':
+        return <div>About Page</div>
+      case 'contact':
+        return <div>Contact Page</div>
+      default:
+        return (
+          <ProductsShowcase 
+            navigationData={navigationData} 
+            onNavigate={handleNavigation}
+          />
+        )
+    }
+  }
 
   return (
     <>
-      <Navbar /> {/* Add your Navbar component here */}
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit `src/App.jsx` and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <Navbar 
+        onNavigate={handleNavigation} 
+        onProductPageState={handleProductPageState}
+      />
+      {/* Only render main content when NOT showing a product page */}
+      {!isShowingProductPage && renderCurrentPage()}
     </>
   )
 }

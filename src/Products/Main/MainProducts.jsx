@@ -9,6 +9,7 @@ import TulipKeychainPage from '../Crochet/TulipKeychain.jsx';
 import SunflowerPage from '../Crochet/sunflower.jsx'; 
 import WatercolorLetterPage from '../Letters/Watercolor.jsx'
 import VintageLetterPage from '../Letters/Vintage.jsx'
+import MatteBlackLetterPage from '../Letters/MatteBlack.jsx'
 
 const ProductsShowcase = ({ initialCategory = 'All', searchQuery = '', navigationData = null }) => {
   const [activeCategory, setActiveCategory] = useState(initialCategory);
@@ -22,7 +23,7 @@ const ProductsShowcase = ({ initialCategory = 'All', searchQuery = '', navigatio
       items: [
         { name: 'Watercolor Letter', price: '₹299', originalPrice: '₹399', discount: '25% OFF', image: '/src/Products/Letters/Images/Watercolor.png', component: 'WatercolorLetterPage', route: '/products/Letters/Watercolor.jsx' },
         { name: 'Vintage Letter', price: '₹349', originalPrice: '₹449', discount: '22% OFF', image: '/src/Products/Letters/Images/Vintage.png', component: 'VintageLetterPage', route: '/Products/Letters/Vintage.jsx' },
-        { name: 'Matte Black Letter', price: '₹279', originalPrice: '₹349', discount: '20% OFF', image: '/src/Products/Letters/images/matteblack.jpg', component: 'MatteBlackPage', route: '/products/letters/matte-black' }
+        { name: 'Matte Black Letter', price: '₹279', originalPrice: '₹349', discount: '20% OFF', image: '/src/Products/Letters/images/MatteBlack.png', component: 'MatteBlackLetterPage', route: '/products/letters/MatteBlack.jsx' }
       ],
       page: 'letters',
       customizable: true
@@ -203,6 +204,9 @@ const ProductsShowcase = ({ initialCategory = 'All', searchQuery = '', navigatio
       setCurrentPage('watercolor-letter');
     } else if (productName.includes('vintage') && productName.includes('letter')) { 
       setCurrentPage('vintage-letter');
+    } else if (productName.includes('matte') && productName.includes('black') && productName.includes('letter')) { 
+      setCurrentPage('matte-black-letter');
+
     } else {
       // For products without specific pages, show generic product detail page
       setCurrentPage('product-detail');
@@ -290,6 +294,10 @@ const ProductsShowcase = ({ initialCategory = 'All', searchQuery = '', navigatio
 
   if (currentPage === 'vintage-letter') {
     return <VintageLetterPage onBack={handleBackToShowcase} product={selectedProduct} />;
+  }
+
+  if (currentPage === 'matte-black-letter') {
+  return <MatteBlackLetterPage onBack={handleBackToShowcase} product={selectedProduct} />;
   }
 
   if (currentPage === 'product-detail') {

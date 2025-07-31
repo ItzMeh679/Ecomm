@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { User, Menu, X, ChevronDown, Search, ShoppingCart, Heart, Bell, ArrowLeft, Star, Sparkles, TrendingUp, Clock, Filter } from 'lucide-react';
 import './Navbar.css';
+import { useCart } from '/src/Cart/CartPage.jsx'
 
 // Import all product page components
 import InspirationalBookmarkPage from '../Products/Bookmarks/Inspirational.jsx';
@@ -17,12 +18,14 @@ import VintageLetterPage from '../Products/Letters/Vintage.jsx';
 const Navbar = ({ 
   onNavigate, 
   onProductPageState, 
-  cartCount = 0, 
   wishlistCount = 0, 
   notificationCount = 0,
   currentUser = null,
   isAuthenticated = false 
 }) => {
+  // Get cart count from context
+  const { cartCount } = useCart();
+  
   // Core navigation state
   const [currentView, setCurrentView] = useState('navbar');
   const [selectedProduct, setSelectedProduct] = useState(null);

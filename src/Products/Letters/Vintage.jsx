@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useCart } from '../../Cart/CartPage.jsx'; // Adjust path based on your folder structure
 
 // Letter Products Logic Class
 class LetterProducts {
@@ -55,7 +56,7 @@ class LetterProducts {
   }
 }
 
-const VintageLetterPage = () => {
+const VintageLetterPage = ({ onBack, onNavigate }) => {
   // State variables
   const [font, setFont] = useState('Normal');
   const [burntEdges, setBurntEdges] = useState(false);
@@ -67,8 +68,12 @@ const VintageLetterPage = () => {
   const [wordStatus, setWordStatus] = useState('good');
   const [showPreview, setShowPreview] = useState(false);
   const [errors, setErrors] = useState({});
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const textareaRef = useRef(null);
+
+  // Get cart functions from context
+  const { addToCart, cartCount } = useCart();
 
   // Helper function to count words
   const countWords = (text) => {
@@ -81,6 +86,13 @@ const VintageLetterPage = () => {
     const bgConfig = LetterProducts.backgrounds.vintage;
     const basePrice = bgConfig.pricing[font];
     const burntEdgesPrice = burntEdges ? 50 : 0;
+    return (basePrice + burntEdgesPrice) * pages;
+  };
+
+  // Get original price (for discount display)
+  const getOriginalPrice = () => {
+    const basePrice = font === 'Normal' ? 150 : 180; // Original higher prices
+    const burntEdgesPrice = burntEdges ? 75 : 0; // Original burnt edges price
     return (basePrice + burntEdgesPrice) * pages;
   };
 
@@ -121,7 +133,13 @@ const VintageLetterPage = () => {
     }
   }, [font]);
 
-  // Handle add to cart
+  // Format occasion name for display
+  const formatOccasionName = (occasionKey) => {
+    if (!occasionKey) return 'Not selected';
+    return occasionKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+  };
+
+  // Enhanced Add to cart functionality with proper cart integration
   const handleAddToCart = () => {
     try {
       const config = {
@@ -146,13 +164,112 @@ const VintageLetterPage = () => {
         return;
       }
 
-      const product = LetterProducts.createLetterProduct(config);
-      console.log('Adding vintage letter to cart:', product);
-      alert('Vintage Letter added to cart successfully!');
-      setErrors({});
+      setIsAddingToCart(true);
+
+      // Create standardized product object for cart with comprehensive specifications
+      const cartProduct = {
+        id: 'vintage-letter',
+        name: 'Vintage Letter',
+        category: 'Letters',
+        price: getPrice(),
+        totalPrice: getPrice(),
+        basePrice: LetterProducts.backgrounds.vintage.pricing[font],
+        quantity: 1,
+        specifications: {
+          background: 'Vintage',
+          font: font,
+          fontStyle: font === 'Calligraphy' ? 'Italic Serif' : 'Sans-serif',
+          burntEdges: burntEdges ? 'Yes (+₹50)' : 'No',
+          specialEffects: burntEdges ? 'Burnt edges for authentic vintage look' : 'Standard vintage styling',
+          messageType: type === 'custom' ? 'Custom Message' : 'Occasion Template',
+          occasion: type === 'occasion' ? formatOccasionName(selectedOccasion) : 'Custom',
+          pages: pages,
+          pagesText: `${pages} page${pages > 1 ? 's' : ''}`,
+          wordCount: wordCount,
+          wordsPerPage: LetterProducts.getWordsPerPage(font),
+          wordStatus: wordStatus === 'good' ? 'Optimal' : wordStatus === 'warning' ? 'Acceptable' : 'Over limit',
+          pricePerPage: `₹${LetterProducts.backgrounds.vintage.pricing[font]} per page`,
+          burntEdgesCost: burntEdges ? '₹50 per page' : 'Not selected',
+          message: text.trim() ? `${text.substring(0, 100)}${text.length > 100 ? '...' : ''}` : 'No message',
+          fullMessage: text.trim() || 'No message provided'
+        },
+        image: 'src/Products/Letters/Images/Vintage.png', // Adjust path as needed
+        tags: ['Vintage', 'Letter', 'Custom', 'Personalized', font, burntEdges ? 'Burnt Edges' : 'Standard'],
+        rating: 4.7,
+        reviews: 89,
+        deliveryTime: '5-7 days'
+      };
+
+      // Add to cart using context
+      addToCart(cartProduct);
+      
+      // Show success feedback
+      setTimeout(() => {
+        setIsAddingToCart(false);
+        const effectsText = burntEdges ? ' with burnt edges' : '';
+        alert(`Successfully added Vintage Letter (${pages} page${pages > 1 ? 's' : ''}${effectsText}) to cart!`);
+        setErrors({});
+      }, 500);
       
     } catch (error) {
+      setIsAddingToCart(false);
       setErrors({ general: error.message });
+    }
+  };
+
+  const handleBuyNow = () => {
+    if (!text.trim()) {
+      setErrors({ general: 'Please enter your message' });
+      return;
+    }
+
+    const wordsPerPage = LetterProducts.getWordsPerPage(font);
+    if (wordCount > wordsPerPage * pages) {
+      setErrors({ words: `Text exceeds ${wordsPerPage * pages} words limit for ${pages} page(s)` });
+      return;
+    }
+
+    // First add to cart, then navigate to cart page
+    const cartProduct = {
+      id: 'vintage-letter',
+      name: 'Vintage Letter',
+      category: 'Letters',
+      price: getPrice(),
+      totalPrice: getPrice(),
+      basePrice: LetterProducts.backgrounds.vintage.pricing[font],
+      quantity: 1,
+      specifications: {
+        background: 'Vintage',
+        font: font,
+        fontStyle: font === 'Calligraphy' ? 'Italic Serif' : 'Sans-serif',
+        burntEdges: burntEdges ? 'Yes (+₹50)' : 'No',
+        specialEffects: burntEdges ? 'Burnt edges for authentic vintage look' : 'Standard vintage styling',
+        messageType: type === 'custom' ? 'Custom Message' : 'Occasion Template',
+        occasion: type === 'occasion' ? formatOccasionName(selectedOccasion) : 'Custom',
+        pages: pages,
+        pagesText: `${pages} page${pages > 1 ? 's' : ''}`,
+        wordCount: wordCount,
+        wordsPerPage: LetterProducts.getWordsPerPage(font),
+        wordStatus: wordStatus === 'good' ? 'Optimal' : wordStatus === 'warning' ? 'Acceptable' : 'Over limit',
+        pricePerPage: `₹${LetterProducts.backgrounds.vintage.pricing[font]} per page`,
+        burntEdgesCost: burntEdges ? '₹50 per page' : 'Not selected',
+        message: text.trim() ? `${text.substring(0, 100)}${text.length > 100 ? '...' : ''}` : 'No message',
+        fullMessage: text.trim() || 'No message provided'
+      },
+      image: 'src/Products/Letters/Images/Vintage.png',
+      tags: ['Vintage', 'Letter', 'Custom', 'Personalized', font, burntEdges ? 'Burnt Edges' : 'Standard'],
+      rating: 4.7,
+      reviews: 89,
+      deliveryTime: '5-7 days'
+    };
+
+    addToCart(cartProduct);
+    
+    // Navigate to cart page if onNavigate function is available
+    if (onNavigate) {
+      onNavigate('cart');
+    } else {
+      alert('Added Vintage Letter to cart! Please go to cart to checkout.');
     }
   };
 
@@ -184,7 +301,7 @@ const VintageLetterPage = () => {
       width: '100vw',
       minHeight: '100vh',
       margin: '0',
-      padding: '0',
+      padding: '2rem',
       position: 'relative',
       left: '50%',
       right: '50%',
@@ -195,10 +312,48 @@ const VintageLetterPage = () => {
       backgroundAttachment: 'fixed',
       boxSizing: 'border-box'
     },
+    backButton: {
+      position: 'absolute',
+      top: '20px',
+      left: '20px',
+      background: 'rgba(255, 255, 255, 0.9)',
+      border: 'none',
+      borderRadius: '12px',
+      padding: '12px 20px',
+      cursor: 'pointer',
+      fontWeight: '600',
+      color: '#1e293b',
+      backdropFilter: 'blur(10px)',
+      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+      transition: 'all 0.3s ease',
+      zIndex: '10'
+    },
+    cartIndicator: {
+      position: 'absolute',
+      top: '20px',
+      right: '20px',
+      background: 'rgba(255, 255, 255, 0.9)',
+      border: 'none',
+      borderRadius: '12px',
+      padding: '12px 20px',
+      fontWeight: '600',
+      color: '#1e293b',
+      backdropFilter: 'blur(10px)',
+      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      zIndex: '10',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease'
+    },
     breadcrumb: {
       fontSize: '14px',
       color: '#6b7280',
-      marginBottom: '24px'
+      marginBottom: '24px',
+      maxWidth: '1400px',
+      margin: '0 auto 24px',
+      paddingTop: '60px'
     },
     breadcrumbLink: {
       color: '#a16207',
@@ -211,7 +366,9 @@ const VintageLetterPage = () => {
       background: 'white',
       borderRadius: '24px',
       boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-      padding: '32px'
+      padding: '32px',
+      maxWidth: '1400px',
+      margin: '0 auto'
     },
     leftSection: {
       display: 'flex',
@@ -402,12 +559,31 @@ const VintageLetterPage = () => {
     pricing: {
       display: 'flex',
       alignItems: 'center',
-      gap: '16px'
+      gap: '16px',
+      padding: '1.5rem 0',
+      borderTop: '1px solid rgba(226, 232, 240, 0.5)',
+      borderBottom: '1px solid rgba(226, 232, 240, 0.5)'
     },
     currentPrice: {
       fontSize: '32px',
       fontWeight: '700',
       color: '#111827'
+    },
+    originalPrice: {
+      fontSize: '20px',
+      color: '#94a3b8',
+      textDecoration: 'line-through',
+      fontWeight: '500'
+    },
+    discountBadge: {
+      background: 'linear-gradient(135deg, #d97706, #a16207)',
+      color: 'white',
+      padding: '0.4rem 0.8rem',
+      borderRadius: '8px',
+      fontSize: '0.8rem',
+      fontWeight: '700',
+      letterSpacing: '0.025em',
+      boxShadow: '0 4px 12px rgba(217, 119, 6, 0.3)'
     },
     priceDetail: {
       fontSize: '14px',
@@ -458,7 +634,7 @@ const VintageLetterPage = () => {
     burntEdgesToggle: {
       display: 'flex',
       alignItems: 'center',
-      justify: 'space-between',
+      justifyContent: 'space-between',
       padding: '16px',
       border: '2px solid #e5e7eb',
       borderRadius: '12px',
@@ -692,7 +868,11 @@ const VintageLetterPage = () => {
       fontSize: '18px',
       transition: 'all 0.2s',
       border: 'none',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px'
     },
     addToCartEnabled: {
       background: '#a16207',
@@ -716,6 +896,14 @@ const VintageLetterPage = () => {
       cursor: 'pointer',
       transition: 'background 0.2s',
       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+    },
+    loadingSpinner: {
+      width: '16px',
+      height: '16px',
+      border: '2px solid rgba(255, 255, 255, 0.3)',
+      borderTop: '2px solid white',
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite'
     },
     infoSection: {
       background: 'linear-gradient(90deg, rgb(245 243 237), rgb(250 248 244))',
@@ -753,10 +941,54 @@ const VintageLetterPage = () => {
     styles.typeGrid.gridTemplateColumns = '1fr';
     styles.occasionGrid.gridTemplateColumns = '1fr';
     styles.infoGrid.gridTemplateColumns = '1fr';
+    styles.page.padding = '1rem';
   }
+
+  // Validation function
+  const isFormValid = () => {
+    return text.trim() && wordStatus !== 'error';
+  };
 
   return (
     <div style={styles.page}>
+      {/* Back Button */}
+      {onBack && (
+        <button 
+          style={styles.backButton}
+          onClick={onBack}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.15)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+          }}
+        >
+          ← Back to Products
+        </button>
+      )}
+
+      {/* Cart Indicator */}
+      <div 
+        style={styles.cartIndicator}
+        onClick={onNavigate ? () => onNavigate('cart') : undefined}
+        onMouseEnter={(e) => {
+          if (onNavigate) {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.15)';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (onNavigate) {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+          }
+        }}
+      >
+        🛒 Cart ({cartCount})
+      </div>
+
       {/* Breadcrumb */}
       <div style={styles.breadcrumb}>
         <span>Home</span> / <span>Letters</span> / <span style={styles.breadcrumbLink}>Vintage Letters</span>
@@ -841,68 +1073,52 @@ const VintageLetterPage = () => {
 
           {/* Features List */}
           <div style={styles.featuresList}>
-            <h3 style={styles.sectionTitle}>Features</h3>
+            <h3 style={styles.sectionTitle}>What's Included</h3>
             <ul style={styles.featuresUl}>
-              <li style={styles.featureItem}>
-                <div style={styles.featureIcon}>
-                  <svg style={styles.checkIcon} fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                  </svg>
-                </div>
-                <span style={styles.featureText}>Premium vintage-style paper</span>
-              </li>
-              <li style={styles.featureItem}>
-                <div style={styles.featureIcon}>
-                  <svg style={styles.checkIcon} fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                  </svg>
-                </div>
-                <span style={styles.featureText}>Hand-crafted aesthetic design</span>
-              </li>
-              <li style={styles.featureItem}>
-                <div style={styles.featureIcon}>
-                  <svg style={styles.checkIcon} fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                  </svg>
-                </div>
-                <span style={styles.featureText}>Customizable message and font</span>
-              </li>
-              <li style={styles.featureItem}>
-                <div style={styles.featureIcon}>
-                  <svg style={styles.checkIcon} fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                  </svg>
-                </div>
-                <span style={styles.featureText}>Optional burnt edge effects</span>
-              </li>
+              {[
+                'Premium vintage-style paper',
+                'Hand-crafted aesthetic design',
+                'High-quality archival paper',
+                'Fade-resistant inks',
+                'Professional envelope',
+                'Optional burnt edge effects'
+              ].map((feature, index) => (
+                <li key={index} style={styles.featureItem}>
+                  <div style={styles.featureIcon}>
+                    <svg style={styles.checkIcon} fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span style={styles.featureText}>{feature}</span>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
 
-        {/* Right Side - Configuration Options */}
+        {/* Right Side - Customization */}
         <div style={styles.rightSection}>
           {/* Header */}
           <div style={styles.header}>
-            <h1 style={styles.title}>Vintage Letter</h1>
-            
-            {/* Rating */}
+            <h1 style={styles.title}>Vintage Letters</h1>
             <div style={styles.ratingSection}>
               <div style={styles.stars}>
-                ★★★★★
+                {'★'.repeat(5)}
               </div>
-              <span style={styles.reviewCount}>(127 reviews)</span>
+              <span style={styles.reviewCount}>(89 reviews)</span>
             </div>
-
-            {/* Pricing */}
             <div style={styles.pricing}>
               <span style={styles.currentPrice}>₹{getPrice()}</span>
-              <span style={styles.priceDetail}>for {pages} page{pages > 1 ? 's' : ''}</span>
+              <span style={styles.originalPrice}>₹{getOriginalPrice()}</span>
+              <span style={styles.discountBadge}>
+                {Math.round((1 - getPrice() / getOriginalPrice()) * 100)}% OFF
+              </span>
             </div>
           </div>
 
           {/* Font Selection */}
           <div style={styles.optionSection}>
-            <h3 style={styles.sectionTitle}>Choose Font Style</h3>
+            <h3 style={styles.sectionTitle}>1. Choose Font Style</h3>
             <div style={styles.fontGrid}>
               {LetterProducts.backgrounds.vintage.fonts.map((fontOption) => (
                 <div
@@ -918,11 +1134,15 @@ const VintageLetterPage = () => {
                     fontFamily: fontOption === 'Calligraphy' ? 'serif' : 'sans-serif',
                     fontStyle: fontOption === 'Calligraphy' ? 'italic' : 'normal'
                   }}>
-                    Hello World
+                    Sample Text
                   </div>
                   <div style={styles.fontName}>{fontOption}</div>
-                  <div style={styles.fontPrice}>₹{LetterProducts.backgrounds.vintage.pricing[fontOption]}</div>
-                  <div style={styles.fontWords}>{LetterProducts.getWordsPerPage(fontOption)} words/page</div>
+                  <div style={styles.fontPrice}>
+                    ₹{LetterProducts.backgrounds.vintage.pricing[fontOption]}/page
+                  </div>
+                  <div style={styles.fontWords}>
+                    {LetterProducts.getWordsPerPage(fontOption)} words/page
+                  </div>
                 </div>
               ))}
             </div>
@@ -930,7 +1150,7 @@ const VintageLetterPage = () => {
 
           {/* Burnt Edges Option */}
           <div style={styles.optionSection}>
-            <h3 style={styles.sectionTitle}>Special Effects</h3>
+            <h3 style={styles.sectionTitle}>2. Special Effects</h3>
             <div
               style={{
                 ...styles.burntEdgesToggle,
@@ -949,9 +1169,9 @@ const VintageLetterPage = () => {
             </div>
           </div>
 
-          {/* Letter Type Selection */}
+          {/* Message Type */}
           <div style={styles.optionSection}>
-            <h3 style={styles.sectionTitle}>Letter Type</h3>
+            <h3 style={styles.sectionTitle}>3. Message Type</h3>
             <div style={styles.typeGrid}>
               <div
                 style={{
@@ -960,7 +1180,7 @@ const VintageLetterPage = () => {
                 }}
                 onClick={() => setType('custom')}
               >
-                <div style={styles.typeEmoji}>✍️</div>
+                <div style={styles.typeEmoji}>✏️</div>
                 <div style={styles.typeName}>Custom Message</div>
                 <div style={styles.typeDesc}>Write your own personal message</div>
               </div>
@@ -972,16 +1192,16 @@ const VintageLetterPage = () => {
                 onClick={() => setType('occasion')}
               >
                 <div style={styles.typeEmoji}>🎉</div>
-                <div style={styles.typeName}>Occasion Templates</div>
-                <div style={styles.typeDesc}>Pre-written messages for special events</div>
+                <div style={styles.typeName}>Occasion Message</div>
+                <div style={styles.typeDesc}>Choose from pre-written templates</div>
               </div>
             </div>
           </div>
 
-          {/* Occasion Selection (only if occasion type is selected) */}
+          {/* Occasion Selection */}
           {type === 'occasion' && (
             <div style={styles.optionSection}>
-              <h3 style={styles.sectionTitle}>Choose Occasion</h3>
+              <h3 style={styles.sectionTitle}>4. Select Occasion</h3>
               <div style={styles.occasionGrid}>
                 {Object.keys(LetterProducts.occasions).map((occasion) => (
                   <div
@@ -993,7 +1213,7 @@ const VintageLetterPage = () => {
                     onClick={() => setSelectedOccasion(occasion)}
                   >
                     <div style={styles.occasionName}>
-                      {occasion.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                      {occasion.replace(/([A-Z])/g, ' $1')}
                     </div>
                   </div>
                 ))}
@@ -1003,7 +1223,9 @@ const VintageLetterPage = () => {
 
           {/* Message Input */}
           <div style={styles.optionSection}>
-            <h3 style={styles.sectionTitle}>Your Message</h3>
+            <h3 style={styles.sectionTitle}>
+              {type === 'occasion' ? '5' : '4'}. Your Message
+            </h3>
             <div style={styles.messageSection}>
               <div style={styles.textareaContainer}>
                 <textarea
@@ -1011,41 +1233,46 @@ const VintageLetterPage = () => {
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder={type === 'custom' ? 
-                    "Write your personalized message here..." : 
-                    "Select an occasion above to see the template message"
+                    "Enter your heartfelt message..." : 
+                    "Select an occasion above to see the template message. You can edit it as needed."
                   }
                   style={{
                     ...styles.textarea,
                     ...(wordStatus === 'error' ? styles.textareaError : styles.textareaDefault)
                   }}
-                  disabled={type === 'occasion' && !selectedOccasion}
+                  rows="6"
                 />
                 <div 
                   style={{
                     ...styles.wordCounter,
                     color: getWordCountColor(),
-                    background: `${getWordCountColor()}20`
+                    backgroundColor: `${getWordCountColor()}15`
                   }}
                 >
-                  {wordCount} words
+                  {wordCount}/{LetterProducts.getWordsPerPage(font) * pages} words
                 </div>
               </div>
               
               <div style={styles.statusRow}>
-                <span style={{...styles.statusMessage, color: getWordCountColor()}}>
+                <div 
+                  style={{
+                    ...styles.statusMessage,
+                    color: getWordCountColor()
+                  }}
+                >
                   {getWordStatusMessage()}
-                </span>
-                <span style={styles.pageCount}>
-                  {pages} page{pages > 1 ? 's' : ''}
-                </span>
+                </div>
+                <div style={styles.pageCount}>
+                  {pages} page{pages > 1 ? 's' : ''} needed
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Preview Section */}
+          {/* Preview Toggle */}
           <div style={styles.previewSection}>
             <div style={styles.previewHeader}>
-              <h3 style={styles.sectionTitle}>Preview</h3>
+              <h3 style={styles.sectionTitle}>Preview Your Letter</h3>
               <button 
                 style={styles.previewButton}
                 onClick={() => setShowPreview(!showPreview)}
@@ -1065,26 +1292,27 @@ const VintageLetterPage = () => {
                     fontFamily: font === 'Calligraphy' ? 'serif' : 'sans-serif',
                     fontStyle: font === 'Calligraphy' ? 'italic' : 'normal'
                   }}>
-                    {text ? text.substring(0, 200) : 'Your message will appear here...'}
-                    {text && text.length > 200 && '...'}
+                    {text || 'Your personalized message will appear here...'}
                   </div>
                   
                   <div style={styles.previewElement1} />
                   <div style={styles.previewElement2} />
                 </div>
                 <div style={styles.previewNote}>
-                  This is a simplified preview. Actual product may vary.
+                  This is a preview. Actual letter will have enhanced vintage effects.
                 </div>
               </div>
             )}
           </div>
 
           {/* Error Messages */}
-          {(errors.general || errors.words) && (
+          {Object.keys(errors).length > 0 && (
             <div style={styles.errorSection}>
-              <div style={styles.errorText}>
-                {errors.general || errors.words}
-              </div>
+              {Object.values(errors).map((error, index) => (
+                <div key={index} style={styles.errorText}>
+                  {error}
+                </div>
+              ))}
             </div>
           )}
 
@@ -1093,43 +1321,69 @@ const VintageLetterPage = () => {
             <button
               style={{
                 ...styles.addToCartBtn,
-                ...(wordStatus === 'error' || !text.trim() ? styles.addToCartDisabled : styles.addToCartEnabled)
+                ...(!isFormValid() || isAddingToCart
+                  ? styles.addToCartDisabled
+                  : styles.addToCartEnabled)
               }}
               onClick={handleAddToCart}
-              disabled={wordStatus === 'error' || !text.trim()}
+              disabled={!isFormValid() || isAddingToCart}
             >
-              Add to Cart - ₹{getPrice()}
+              {isAddingToCart ? (
+                <>
+                  <div style={styles.loadingSpinner} />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  🛒 Add to Cart - ₹{getPrice()}
+                </>
+              )}
             </button>
             
-            <button style={styles.buyNowBtn}>
-              Buy Now
+            <button 
+              style={{
+                ...styles.buyNowBtn,
+                opacity: !isFormValid() ? 0.6 : 1,
+                cursor: !isFormValid() ? 'not-allowed' : 'pointer'
+              }}
+              onClick={handleBuyNow}
+              disabled={!isFormValid()}
+            >
+              ⚡ Buy Now
             </button>
           </div>
 
           {/* Additional Info */}
           <div style={styles.infoSection}>
-            <h3 style={styles.sectionTitle}>Why Choose Vintage Letters?</h3>
             <div style={styles.infoGrid}>
+              <div style={styles.infoItem}>
+                <span style={styles.infoIcon}>🚚</span>
+                <span style={styles.infoText}>Free delivery on ₹500+</span>
+              </div>
               <div style={styles.infoItem}>
                 <span style={styles.infoIcon}>📜</span>
                 <span style={styles.infoText}>Authentic vintage feel</span>
-              </div>
-              <div style={styles.infoItem}>
-                <span style={styles.infoIcon}>🎨</span>
-                <span style={styles.infoText}>Customizable design</span>
               </div>
               <div style={styles.infoItem}>
                 <span style={styles.infoIcon}>💝</span>
                 <span style={styles.infoText}>Perfect for gifting</span>
               </div>
               <div style={styles.infoItem}>
-                <span style={styles.infoIcon}>⚡</span>
-                <span style={styles.infoText}>Fast delivery</span>
+                <span style={styles.infoIcon}>🎨</span>
+                <span style={styles.infoText}>Premium vintage paper</span>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* CSS Animations */}
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };

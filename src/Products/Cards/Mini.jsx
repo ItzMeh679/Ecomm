@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useCart } from '../../Cart/CartPage.jsx'; // Adjust path based on your folder structure
 
-const MiniCardPage = () => {
+const MiniCardPage = ({ onBack, onNavigate }) => {
   const [recipientName, setRecipientName] = useState('');
   const [selectedOccasion, setSelectedOccasion] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
@@ -8,21 +9,38 @@ const MiniCardPage = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [isZoomed, setIsZoomed] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [showPreview, setShowPreview] = useState(false);
+  const [imageError, setImageError] = useState('');
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  
   const fileInputRef = useRef(null);
 
+  // Get cart functions from context
+  const { addToCart, cartCount } = useCart();
+
+  // Occasion options
   const occasions = [
-    'Happy Birthday',
-    'Happy Anniversary',
-    'Happy Diwali',
-    'Congratulations',
-    'Best Wishes',
-    'Thank You',
-    'Get Well Soon',
-    'Miss You',
-    'Love You'
+    { id: 'happy-birthday', name: 'Happy Birthday', icon: '🎂' },
+    { id: 'happy-anniversary', name: 'Happy Anniversary', icon: '💕' },
+    { id: 'happy-diwali', name: 'Happy Diwali', icon: '🪔' },
+    { id: 'congratulations', name: 'Congratulations', icon: '🎉' },
+    { id: 'best-wishes', name: 'Best Wishes', icon: '🌟' },
+    { id: 'thank-you', name: 'Thank You', icon: '🙏' },
+    { id: 'get-well-soon', name: 'Get Well Soon', icon: '🌻' },
+    { id: 'miss-you', name: 'Miss You', icon: '💝' },
+    { id: 'love-you', name: 'Love You', icon: '❤️' }
   ];
 
-  const vibgyorColors = ['Violet', 'Indigo', 'Blue', 'Green', 'Yellow', 'Orange', 'Red'];
+  // VIBGYOR Colors with hex values for better display
+  const vibgyorColors = [
+    { name: 'Violet', hex: '#8B5CF6', textColor: 'white' },
+    { name: 'Indigo', hex: '#4F46E5', textColor: 'white' },
+    { name: 'Blue', hex: '#3B82F6', textColor: 'white' },
+    { name: 'Green', hex: '#10B981', textColor: 'white' },
+    { name: 'Yellow', hex: '#F59E0B', textColor: 'black' },
+    { name: 'Orange', hex: '#F97316', textColor: 'white' },
+    { name: 'Red', hex: '#EF4444', textColor: 'white' }
+  ];
 
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -31,39 +49,190 @@ const MiniCardPage = () => {
     setMousePosition({ x, y });
   };
 
+  // Handle image upload
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => setImagePreview(e.target.result);
-    reader.readAsDataURL(file);
-    setUploadedImage(file);
-  };
 
-  const handleAddToCart = () => {
-    if (!recipientName || !selectedOccasion || !selectedColor || !uploadedImage) {
-      alert('Please complete all fields.');
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setImageError('Please upload a valid image file (JPEG, PNG, or GIF)');
       return;
     }
-    const orderDetails = {
-      product: 'Mini Card',
-      recipientName,
-      selectedOccasion,
-      selectedColor,
-      uploadedImageName: uploadedImage.name,
-      timestamp: new Date().toISOString(),
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError('Image size should be less than 5MB');
+      return;
+    }
+
+    setImageError('');
+    setUploadedImage(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target.result);
     };
-    console.log('Mini card order:', orderDetails);
-    alert('Mini Card added to cart successfully!');
+    reader.readAsDataURL(file);
+  };
+
+  // Remove uploaded image
+  const removeImage = () => {
+    setUploadedImage(null);
+    setImagePreview(null);
+    setImageError('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Get current price
+  const getPrice = () => 149;
+  const getOriginalPrice = () => 199;
+
+  // Enhanced Add to cart functionality with proper cart integration
+  const handleAddToCart = () => {
+    if (!recipientName.trim()) {
+      alert('Please enter the recipient\'s name');
+      return;
+    }
+
+    if (!selectedOccasion) {
+      alert('Please select an occasion');
+      return;
+    }
+
+    if (!selectedColor) {
+      alert('Please select a card color');
+      return;
+    }
+
+    if (!uploadedImage) {
+      alert('Please upload an image for your card');
+      return;
+    }
+
+    setIsAddingToCart(true);
+
+    // Create standardized product object for cart with specifications
+    const cartProduct = {
+      id: 'mini-card',
+      name: 'Mini Card',
+      category: 'Cards',
+      price: getPrice(),
+      totalPrice: getPrice(),
+      basePrice: getPrice(),
+      quantity: 1,
+      specifications: {
+        recipientName: recipientName.trim(),
+        occasion: occasions.find(o => o.id === selectedOccasion)?.name || 'Not selected',
+        cardColor: selectedColor,
+        hasImage: !!uploadedImage,
+        imageName: uploadedImage?.name || 'No image',
+        imageSize: uploadedImage ? `${(uploadedImage.size / 1024 / 1024).toFixed(2)} MB` : 'N/A'
+      },
+      image: 'src/Products/Cards/Images/Mini.png',
+      tags: ['Mini', 'Card', 'Custom', 'Personalized'],
+      rating: 4.8,
+      reviews: 62,
+      deliveryTime: '2-4 days'
+    };
+
+    // Add to cart using context
+    addToCart(cartProduct);
+    
+    // Show success feedback
+    setTimeout(() => {
+      setIsAddingToCart(false);
+      alert('Successfully added Mini Card to cart with your customizations!');
+    }, 500);
+  };
+
+  const handleBuyNow = () => {
+    if (!recipientName.trim()) {
+      alert('Please enter the recipient\'s name');
+      return;
+    }
+
+    if (!selectedOccasion) {
+      alert('Please select an occasion');
+      return;
+    }
+
+    if (!selectedColor) {
+      alert('Please select a card color');
+      return;
+    }
+
+    if (!uploadedImage) {
+      alert('Please upload an image for your card');
+      return;
+    }
+
+    // First add to cart, then navigate to cart page
+    const cartProduct = {
+      id: 'mini-card',
+      name: 'Mini Card',
+      category: 'Cards',
+      price: getPrice(),
+      totalPrice: getPrice(),
+      basePrice: getPrice(),
+      quantity: 1,
+      specifications: {
+        recipientName: recipientName.trim(),
+        occasion: occasions.find(o => o.id === selectedOccasion)?.name || 'Not selected',
+        cardColor: selectedColor,
+        hasImage: !!uploadedImage,
+        imageName: uploadedImage?.name || 'No image',
+        imageSize: uploadedImage ? `${(uploadedImage.size / 1024 / 1024).toFixed(2)} MB` : 'N/A'
+      },
+      image: 'src/Products/Cards/Images/Mini.png',
+      tags: ['Mini', 'Card', 'Custom', 'Personalized'],
+      rating: 4.8,
+      reviews: 62,
+      deliveryTime: '2-4 days'
+    };
+
+    addToCart(cartProduct);
+    
+    // Navigate to cart page if onNavigate function is available
+    if (onNavigate) {
+      onNavigate('cart');
+    } else {
+      alert('Added Mini Card to cart! Please go to cart to checkout.');
+    }
   };
 
   return (
     <div className="card-product-page">
+      {/* Back Button */}
+      {onBack && (
+        <button 
+          className="back-button"
+          onClick={onBack}
+        >
+          ← Back to Products
+        </button>
+      )}
+
+      {/* Cart Indicator */}
+      <div 
+        className="cart-indicator"
+        onClick={onNavigate ? () => onNavigate('cart') : undefined}
+        style={{ cursor: onNavigate ? 'pointer' : 'default' }}
+      >
+        🛒 Cart ({cartCount})
+      </div>
+
+      {/* Navigation breadcrumb */}
       <div className="breadcrumb">
         <span>Home</span> / <span>Cards</span> / <span>Mini Cards</span>
       </div>
 
       <div className="product-container">
+        {/* Left side - Product Image, Dimensions, and Product Details */}
         <div className="product-left-section">
           <div 
             className={`product-image-container ${isZoomed ? 'zoomed' : ''}`}
@@ -75,7 +244,9 @@ const MiniCardPage = () => {
               src="src/Products/Cards/Images/Mini.png" 
               alt="Mini Card"
               className="product-image"
-              style={{ transformOrigin: `${mousePosition.x}% ${mousePosition.y}%` }}
+              style={{
+                transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`
+              }}
             />
             {isZoomed && (
               <div className="zoom-indicator">
@@ -84,6 +255,7 @@ const MiniCardPage = () => {
             )}
           </div>
 
+          {/* Dimensions below image */}
           <div className="dimensions">
             <h3>Dimensions</h3>
             <p><strong>Size:</strong> 10cm × 15cm (Mini Size)</p>
@@ -91,6 +263,7 @@ const MiniCardPage = () => {
             <p><strong>Weight:</strong> 25g</p>
           </div>
 
+          {/* Product Details below dimensions */}
           <div className="product-description">
             <h3>Product Details</h3>
             <ul>
@@ -98,12 +271,13 @@ const MiniCardPage = () => {
               <li>High-quality photo printing on cardstock</li>
               <li>Personalized recipient name and image</li>
               <li>Includes matching mini envelope</li>
-              <li>Gloss or matte finish</li>
-              <li>Ideal for every occasion</li>
+              <li>Professional matte or gloss finish</li>
+              <li>Perfect for every occasion</li>
             </ul>
           </div>
         </div>
 
+        {/* Right side - Product Info and Customization */}
         <div className="product-right-section">
           <div className="product-header">
             <h1>Mini Cards</h1>
@@ -114,11 +288,12 @@ const MiniCardPage = () => {
           </div>
 
           <div className="pricing">
-            <span className="current-price">₹149</span>
-            <span className="original-price">₹199</span>
+            <span className="current-price">₹{getPrice()}</span>
+            <span className="original-price">₹{getOriginalPrice()}</span>
             <span className="discount-badge">25% OFF</span>
           </div>
 
+          {/* Recipient Name Input */}
           <div className="customization-section">
             <h3>Recipient's Name</h3>
             <input
@@ -127,39 +302,51 @@ const MiniCardPage = () => {
               onChange={(e) => setRecipientName(e.target.value)}
               placeholder="Enter name of recipient"
               className="message-input"
+              style={{ minHeight: 'auto', resize: 'none' }}
             />
           </div>
 
+          {/* Occasion Selection */}
           <div className="customization-section">
             <h3>Select Occasion</h3>
-            <select
-              className="date-input"
-              value={selectedOccasion}
-              onChange={(e) => setSelectedOccasion(e.target.value)}
-            >
-              <option value="">-- Select Occasion --</option>
-              {occasions.map((title, index) => (
-                <option key={index} value={title}>{title}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="customization-section">
-            <h3>Select Card Color</h3>
             <div className="occasion-options">
-              {vibgyorColors.map((color) => (
-                <div
-                  key={color}
-                  className={`occasion-option ${selectedColor === color ? 'selected' : ''}`}
-                  style={{ backgroundColor: color.toLowerCase() }}
-                  onClick={() => setSelectedColor(color)}
+              {occasions.map((occasion) => (
+                <div 
+                  key={occasion.id}
+                  className={`occasion-option ${selectedOccasion === occasion.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedOccasion(occasion.id)}
                 >
-                  <span className="occasion-name">{color}</span>
+                  <span className="occasion-icon">{occasion.icon}</span>
+                  <span className="occasion-name">{occasion.name}</span>
                 </div>
               ))}
             </div>
           </div>
 
+          {/* Color Selection */}
+          <div className="customization-section">
+            <h3>Select Card Color</h3>
+            <div className="color-options">
+              {vibgyorColors.map((color) => (
+                <div
+                  key={color.name}
+                  className={`color-option ${selectedColor === color.name ? 'selected' : ''}`}
+                  style={{ 
+                    backgroundColor: color.hex,
+                    color: color.textColor
+                  }}
+                  onClick={() => setSelectedColor(color.name)}
+                >
+                  <span className="color-name">{color.name}</span>
+                  {selectedColor === color.name && (
+                    <span className="checkmark">✓</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Image Upload Section */}
           <div className="customization-section">
             <h3>Upload Image for Inside Card</h3>
             <div className="image-upload-container">
@@ -179,11 +366,7 @@ const MiniCardPage = () => {
                     >
                       Change Image
                     </button>
-                    <button className="remove-image-btn" onClick={() => {
-                      setUploadedImage(null);
-                      setImagePreview(null);
-                      fileInputRef.current.value = null;
-                    }}>
+                    <button className="remove-image-btn" onClick={removeImage}>
                       Remove
                     </button>
                   </div>
@@ -196,18 +379,84 @@ const MiniCardPage = () => {
                 onChange={handleImageUpload}
                 className="hidden-file-input"
               />
+              {imageError && (
+                <div className="error-message">
+                  {imageError}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="action-buttons">
-            <button className="add-to-cart-btn" onClick={handleAddToCart}>
-              Add to Cart
+          {/* Preview Section */}
+          <div className="preview-section">
+            <h3>Preview Your Mini Card</h3>
+            <button 
+              className="preview-toggle"
+              onClick={() => setShowPreview(!showPreview)}
+            >
+              {showPreview ? 'Hide Preview' : 'Show Preview'}
             </button>
-            <button className="buy-now-btn">
-              Buy Now
+            
+            {showPreview && (
+              <div className="card-preview">
+                <div className="preview-card mini-preview">
+                  <div className="preview-header">Your Custom Mini Card</div>
+                  
+                  <div className="mini-card-mockup" style={{ 
+                    backgroundColor: selectedColor ? vibgyorColors.find(c => c.name === selectedColor)?.hex : '#f3f4f6',
+                    color: selectedColor ? vibgyorColors.find(c => c.name === selectedColor)?.textColor : '#1f2937'
+                  }}>
+                    <div className="mini-card-front">
+                      {selectedOccasion && (
+                        <div className="preview-occasion">
+                          {occasions.find(o => o.id === selectedOccasion)?.icon} 
+                          {occasions.find(o => o.id === selectedOccasion)?.name}
+                        </div>
+                      )}
+                      {recipientName && (
+                        <div className="preview-recipient">
+                          To: {recipientName}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {imagePreview && (
+                      <div className="preview-image-container">
+                        <img src={imagePreview} alt="Card preview" className="preview-image" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="action-buttons">
+            <button 
+              className={`add-to-cart-btn ${(!recipientName || !selectedOccasion || !selectedColor || !uploadedImage || isAddingToCart) ? 'disabled' : ''}`}
+              onClick={handleAddToCart}
+              disabled={!recipientName || !selectedOccasion || !selectedColor || !uploadedImage || isAddingToCart}
+            >
+              {isAddingToCart ? (
+                <>
+                  <div className="loading-spinner" />
+                  Adding...
+                </>
+              ) : (
+                '🛒 Add to Cart'
+              )}
+            </button>
+            <button 
+              className="buy-now-btn"
+              onClick={handleBuyNow}
+              disabled={!recipientName || !selectedOccasion || !selectedColor || !uploadedImage || isAddingToCart}
+            >
+              ⚡ Buy Now
             </button>
           </div>
 
+          {/* Additional Info */}
           <div className="additional-info">
             <div className="info-item">
               <span className="info-icon">🚚</span>
@@ -228,6 +477,7 @@ const MiniCardPage = () => {
           </div>
         </div>
       </div>
+
       <style jsx>{`
         * {
           box-sizing: border-box;
@@ -246,6 +496,52 @@ const MiniCardPage = () => {
           margin-left: -50vw;
           margin-right: -50vw;
           background-attachment: fixed;
+        }
+
+        .back-button {
+          position: absolute;
+          top: 20px;
+          left: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          border: none;
+          border-radius: 12px;
+          padding: 12px 20px;
+          cursor: pointer;
+          font-weight: 600;
+          color: #1e293b;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+          transition: all 0.3s ease;
+          z-index: 10;
+        }
+
+        .back-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .cart-indicator {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          border: none;
+          border-radius: 12px;
+          padding: 12px 20px;
+          font-weight: 600;
+          color: #1e293b;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          z-index: 10;
+          transition: all 0.3s ease;
+        }
+
+        .cart-indicator:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
         }
 
         .breadcrumb {
@@ -642,43 +938,49 @@ const MiniCardPage = () => {
           color: #1e293b;
         }
 
-        /* Date Input */
-        .date-input-container {
-          display: flex;
-          flex-direction: column;
+        /* Color Options */
+        .color-options {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
           gap: 1rem;
         }
 
-        .date-input {
+        .color-option {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           padding: 1rem;
           border: 2px solid rgba(226, 232, 240, 0.4);
           border-radius: 12px;
-          font-size: 1rem;
-          background: rgba(255, 255, 255, 0.8);
-          transition: border-color 0.3s ease;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+          backdrop-filter: blur(8px);
+          position: relative;
+          overflow: hidden;
         }
 
-        .date-input:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        .color-option:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
         }
 
-        .selected-date-display {
-          color: #059669;
+        .color-option.selected {
+          border-color: #ffffff;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+          border-width: 3px;
+        }
+
+        .color-name {
           font-weight: 600;
-          font-size: 0.95rem;
-          padding: 0.75rem 1rem;
-          background: rgba(34, 197, 94, 0.05);
-          border-radius: 8px;
-          border: 1px solid rgba(34, 197, 94, 0.1);
+          font-size: 1rem;
+        }
+
+        .checkmark {
+          font-size: 1.2rem;
+          font-weight: bold;
         }
 
         /* Message Input */
-        .message-input-container {
-          position: relative;
-        }
-
         .message-input {
           width: 100%;
           padding: 1rem;
@@ -689,38 +991,13 @@ const MiniCardPage = () => {
           background: rgba(255, 255, 255, 0.8);
           transition: all 0.3s ease;
           resize: vertical;
-          min-height: 120px;
+          min-height: 50px;
         }
 
         .message-input:focus {
           outline: none;
           border-color: #3b82f6;
           box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-        }
-
-        .message-input.error {
-          border-color: #ef4444;
-          box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
-        }
-
-        .word-counter {
-          position: absolute;
-          bottom: 0.75rem;
-          right: 0.75rem;
-          background: rgba(255, 255, 255, 0.9);
-          backdrop-filter: blur(8px);
-          padding: 0.25rem 0.5rem;
-          border-radius: 6px;
-          font-size: 0.8rem;
-          font-weight: 600;
-          color: #64748b;
-          border: 1px solid rgba(226, 232, 240, 0.3);
-        }
-
-        .word-counter.error {
-          background: rgba(239, 68, 68, 0.1);
-          color: #ef4444;
-          border-color: rgba(239, 68, 68, 0.2);
         }
 
         .error-message {
@@ -734,87 +1011,11 @@ const MiniCardPage = () => {
           border: 1px solid rgba(239, 68, 68, 0.1);
         }
 
-        .error-message.shake {
-          animation: shake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97);
-        }
-
-        @keyframes shake {
-          10%, 90% { transform: translate3d(-1px, 0, 0); }
-          20%, 80% { transform: translate3d(2px, 0, 0); }
-          30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-          40%, 60% { transform: translate3d(4px, 0, 0); }
-        }
-
-        .success-message {
-          color: #059669;
-          font-size: 0.85rem;
-          font-weight: 600;
-          margin-top: 0.5rem;
-          padding: 0.75rem 1rem;
-          background: rgba(34, 197, 94, 0.05);
-          border-radius: 8px;
-          border: 1px solid rgba(34, 197, 94, 0.1);
-        }
-
-        /* Calendar Add-on */
-        .addon-container {
-          width: 100%;
-        }
-
-        .addon-option {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1.5rem;
-          border: 2px solid rgba(226, 232, 240, 0.4);
-          border-radius: 12px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          background: rgba(255, 255, 255, 0.7);
-        }
-
-        .addon-option:hover {
-          border-color: #3b82f6;
-          background: rgba(59, 130, 246, 0.02);
-        }
-
-        .addon-option input[type="checkbox"] {
-          width: 20px;
-          height: 20px;
-          accent-color: #3b82f6;
-        }
-
-        .addon-content {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          width: 100%;
-        }
-
-        .addon-icon {
-          font-size: 2rem;
-        }
-
-        .addon-details h4 {
-          margin: 0 0 0.5rem 0;
-          color: #1e293b;
-          font-size: 1.1rem;
-          font-weight: 600;
-        }
-
-        .addon-details p {
-          margin: 0 0 0.5rem 0;
-          color: #64748b;
-          font-size: 0.9rem;
-        }
-
-        .addon-price {
-          color: #059669;
-          font-weight: 700;
-          font-size: 0.95rem;
-        }
-
         /* Preview Section */
+        .preview-section {
+          margin-top: 1rem;
+        }
+
         .preview-toggle {
           background: linear-gradient(135deg, #3b82f6, #2563eb);
           color: white;
@@ -866,39 +1067,41 @@ const MiniCardPage = () => {
           border-bottom: 1px solid rgba(226, 232, 240, 0.3);
         }
 
+        .mini-card-mockup {
+          border-radius: 12px;
+          padding: 1.5rem;
+          margin-bottom: 1rem;
+          text-align: center;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .mini-card-front {
+          margin-bottom: 1rem;
+        }
+
+        .preview-occasion {
+          font-weight: 600;
+          font-size: 1.1rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .preview-recipient {
+          font-weight: 500;
+          font-size: 1rem;
+          font-style: italic;
+        }
+
         .preview-image-container {
           text-align: center;
-          margin-bottom: 1.5rem;
+          margin-top: 1rem;
         }
 
         .preview-image {
-          max-width: 200px;
-          max-height: 150px;
+          max-width: 120px;
+          max-height: 90px;
           border-radius: 8px;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .preview-details {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .preview-occasion, .preview-date, .preview-addon {
-          font-weight: 600;
-          color: #475569;
-          font-size: 0.95rem;
-        }
-
-        .preview-message {
-          font-style: italic;
-          color: #1e293b;
-          font-size: 1rem;
-          line-height: 1.6;
-          padding: 1rem;
-          background: rgba(248, 250, 252, 0.5);
-          border-radius: 8px;
-          border-left: 4px solid #3b82f6;
         }
 
         /* Action Buttons */
@@ -918,6 +1121,10 @@ const MiniCardPage = () => {
           cursor: pointer;
           transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
           letter-spacing: 0.025em;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
         }
 
         .add-to-cart-btn {
@@ -943,9 +1150,29 @@ const MiniCardPage = () => {
           box-shadow: 0 6px 20px rgba(5, 150, 105, 0.3);
         }
 
-        .buy-now-btn:hover {
+        .buy-now-btn:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 10px 32px rgba(5, 150, 105, 0.4);
+        }
+
+        .buy-now-btn:disabled {
+          background: #94a3b8;
+          cursor: not-allowed;
+          opacity: 0.6;
+        }
+
+        .loading-spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-top: 2px solid white;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
 
         /* Additional Info */
@@ -987,7 +1214,7 @@ const MiniCardPage = () => {
             font-size: 2.25rem;
           }
 
-          .occasion-options {
+          .occasion-options, .color-options {
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
           }
         }
@@ -1020,7 +1247,7 @@ const MiniCardPage = () => {
             flex-direction: column;
           }
 
-          .occasion-options {
+          .occasion-options, .color-options {
             grid-template-columns: 1fr;
           }
 
@@ -1031,6 +1258,15 @@ const MiniCardPage = () => {
 
           .customization-section {
             padding: 1rem;
+          }
+
+          .back-button, .cart-indicator {
+            position: relative;
+            top: auto;
+            left: auto;
+            right: auto;
+            margin: 1rem;
+            display: inline-block;
           }
         }
 
@@ -1055,8 +1291,13 @@ const MiniCardPage = () => {
             font-size: 2rem;
           }
 
-          .message-input {
-            min-height: 100px;
+          .mini-card-mockup {
+            padding: 1rem;
+          }
+
+          .preview-image {
+            max-width: 100px;
+            max-height: 75px;
           }
         }
       `}</style>

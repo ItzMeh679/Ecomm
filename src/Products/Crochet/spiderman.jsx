@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
+import { useCart } from '/src/Cart/CartPage.jsx'; // Adjust path based on your folder structure
 
-const SpidermanCrochetPage = ({ onBack, product }) => {
+const SpidermanCrochetPage = ({ onBack, onNavigate, product }) => {
   const [isZoomed, setIsZoomed] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [quantity, setQuantity] = useState(1);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+
+  // Get cart functions from context
+  const { addToCart, cartCount } = useCart();
 
   // Handle mouse move for zoom effect
   const handleMouseMove = (e) => {
@@ -13,23 +18,63 @@ const SpidermanCrochetPage = ({ onBack, product }) => {
     setMousePosition({ x, y });
   };
 
-  // Add to cart functionality
+  // Enhanced Add to cart functionality with proper cart integration
   const handleAddToCart = () => {
-    const orderSpecs = {
-      product: 'Spider-Man Crochet',
+    setIsAddingToCart(true);
+    
+    // Create standardized product object for cart
+    const cartProduct = {
+      id: 'spiderman-crochet',
+      name: 'Spider-Man Crochet',
+      category: 'Crochet',
+      price: 299,
+      totalPrice: 299,
+      basePrice: 299,
       quantity: quantity,
-      price: '₹299',
-      originalPrice: '₹399',
-      discount: '25% OFF',
-      timestamp: new Date().toISOString()
+      specifications: {}, // No customizations for this basic product
+      image: '/src/Products/Crochet/Images/Spiderman.png',
+      tags: ['Marvel', 'Superhero', 'Handmade', 'Cotton'],
+      rating: 4.9,
+      reviews: 45,
+      deliveryTime: '3-5 days'
     };
 
-    console.log('Adding to cart with specifications:', orderSpecs);
-    alert(`Added ${quantity} Spider-Man Crochet(s) to cart successfully!`);
+    // Add to cart using context
+    addToCart(cartProduct);
+    
+    // Show success feedback
+    setTimeout(() => {
+      setIsAddingToCart(false);
+      alert(`Successfully added ${quantity} Spider-Man Crochet${quantity > 1 ? 's' : ''} to cart!`);
+    }, 500);
   };
 
   const handleBuyNow = () => {
-    alert(`Proceeding to checkout with ${quantity} Spider-Man Crochet(s)`);
+    // First add to cart, then navigate to cart page
+    const cartProduct = {
+      id: 'spiderman-crochet',
+      name: 'Spider-Man Crochet',
+      category: 'Crochet',
+      price: 299,
+      totalPrice: 299,
+      basePrice: 299,
+      quantity: quantity,
+      specifications: {},
+      image: '/src/Products/Crochet/Images/Spiderman.png',
+      tags: ['Marvel', 'Superhero', 'Handmade', 'Cotton'],
+      rating: 4.9,
+      reviews: 45,
+      deliveryTime: '3-5 days'
+    };
+
+    addToCart(cartProduct);
+    
+    // Navigate to cart page if onNavigate function is available
+    if (onNavigate) {
+      onNavigate('cart');
+    } else {
+      alert(`Added ${quantity} Spider-Man Crochet${quantity > 1 ? 's' : ''} to cart! Please go to cart to checkout.`);
+    }
   };
 
   const styles = {
@@ -63,6 +108,24 @@ const SpidermanCrochetPage = ({ onBack, product }) => {
       boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
       transition: 'all 0.3s ease',
       zIndex: 10
+    },
+    cartIndicator: {
+      position: 'absolute',
+      top: '20px',
+      right: '20px',
+      background: 'rgba(255, 255, 255, 0.9)',
+      border: 'none',
+      borderRadius: '12px',
+      padding: '12px 20px',
+      fontWeight: '600',
+      color: '#1e293b',
+      backdropFilter: 'blur(10px)',
+      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      zIndex: 10,
+      cursor: onNavigate ? 'pointer' : 'default'
     },
     breadcrumb: {
       color: '#cbd5e1',
@@ -322,12 +385,19 @@ const SpidermanCrochetPage = ({ onBack, product }) => {
       fontSize: '1rem',
       cursor: 'pointer',
       transition: 'all 0.3s cubic-bezier(0.23, 1, 0.320, 1)',
-      letterSpacing: '0.025em'
+      letterSpacing: '0.025em',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '0.5rem'
     },
     addToCartBtn: {
-      background: 'linear-gradient(135deg, #e94560, #d1374a)',
+      background: isAddingToCart 
+        ? 'linear-gradient(135deg, #9ca3af, #6b7280)' 
+        : 'linear-gradient(135deg, #e94560, #d1374a)',
       color: 'white',
-      boxShadow: '0 6px 20px rgba(233, 69, 96, 0.3)'
+      boxShadow: '0 6px 20px rgba(233, 69, 96, 0.3)',
+      cursor: isAddingToCart ? 'not-allowed' : 'pointer'
     },
     buyNowBtn: {
       background: 'linear-gradient(135deg, #0f172a, #1e293b)',
@@ -353,6 +423,14 @@ const SpidermanCrochetPage = ({ onBack, product }) => {
       fontSize: '1.2rem',
       width: '24px',
       textAlign: 'center'
+    },
+    loadingSpinner: {
+      width: '16px',
+      height: '16px',
+      border: '2px solid rgba(255, 255, 255, 0.3)',
+      borderTop: '2px solid white',
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite'
     }
   };
 
@@ -389,6 +467,26 @@ const SpidermanCrochetPage = ({ onBack, product }) => {
           ← Back to Products
         </button>
       )}
+
+      {/* Cart Indicator */}
+      <div 
+        style={styles.cartIndicator}
+        onClick={onNavigate ? () => onNavigate('cart') : undefined}
+        onMouseEnter={(e) => {
+          if (onNavigate) {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.15)';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (onNavigate) {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+          }
+        }}
+      >
+        🛒 Cart ({cartCount})
+      </div>
 
       {/* Navigation breadcrumb */}
       <div style={styles.breadcrumb}>
@@ -494,13 +592,18 @@ const SpidermanCrochetPage = ({ onBack, product }) => {
               <button 
                 style={styles.quantityBtn}
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                disabled={isAddingToCart}
                 onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-1px)';
-                  e.target.style.boxShadow = '0 4px 12px rgba(233, 69, 96, 0.3)';
+                  if (!isAddingToCart) {
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(233, 69, 96, 0.3)';
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 2px 8px rgba(233, 69, 96, 0.2)';
+                  if (!isAddingToCart) {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 8px rgba(233, 69, 96, 0.2)';
+                  }
                 }}
               >
                 -
@@ -509,13 +612,18 @@ const SpidermanCrochetPage = ({ onBack, product }) => {
               <button 
                 style={styles.quantityBtn}
                 onClick={() => setQuantity(quantity + 1)}
+                disabled={isAddingToCart}
                 onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-1px)';
-                  e.target.style.boxShadow = '0 4px 12px rgba(233, 69, 96, 0.3)';
+                  if (!isAddingToCart) {
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(233, 69, 96, 0.3)';
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 2px 8px rgba(233, 69, 96, 0.2)';
+                  if (!isAddingToCart) {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 8px rgba(233, 69, 96, 0.2)';
+                  }
                 }}
               >
                 +
@@ -547,30 +655,49 @@ const SpidermanCrochetPage = ({ onBack, product }) => {
             <button 
               style={{...styles.actionBtn, ...styles.addToCartBtn}}
               onClick={handleAddToCart}
+              disabled={isAddingToCart}
               onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 10px 32px rgba(233, 69, 96, 0.4)';
+                if (!isAddingToCart) {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 10px 32px rgba(233, 69, 96, 0.4)';
+                }
               }}
               onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 6px 20px rgba(233, 69, 96, 0.3)';
+                if (!isAddingToCart) {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 6px 20px rgba(233, 69, 96, 0.3)';
+                }
               }}
             >
-              Add to Cart
+              {isAddingToCart ? (
+                <>
+                  <div style={styles.loadingSpinner} />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  🛒 Add to Cart
+                </>
+              )}
             </button>
             <button 
               style={{...styles.actionBtn, ...styles.buyNowBtn}}
               onClick={handleBuyNow}
+              disabled={isAddingToCart}
               onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 10px 32px rgba(15, 23, 42, 0.4)';
+                if (!isAddingToCart) {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 10px 32px rgba(15, 23, 42, 0.4)';
+                }
               }}
               onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 6px 20px rgba(15, 23, 42, 0.3)';
+                if (!isAddingToCart) {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 6px 20px rgba(15, 23, 42, 0.3)';
+                }
               }}
             >
-              Buy Now
+              ⚡ Buy Now
             </button>
           </div>
 
@@ -590,6 +717,13 @@ const SpidermanCrochetPage = ({ onBack, product }) => {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };

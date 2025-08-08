@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useCart } from '../../Cart/CartPage.jsx'; // Adjust path based on your folder structure
 
 // Letter Products Logic Class
 class LetterProducts {
@@ -55,7 +56,7 @@ class LetterProducts {
   }
 }
 
-const WatercolorLetterPage = () => {
+const WatercolorLetterPage = ({ onBack, onNavigate }) => {
   // State variables
   const [font, setFont] = useState('Normal');
   const [color, setColor] = useState('');
@@ -67,8 +68,12 @@ const WatercolorLetterPage = () => {
   const [wordStatus, setWordStatus] = useState('good');
   const [showPreview, setShowPreview] = useState(false);
   const [errors, setErrors] = useState({});
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const textareaRef = useRef(null);
+
+  // Get cart functions from context
+  const { addToCart, cartCount } = useCart();
 
   // Helper function to count words
   const countWords = (text) => {
@@ -81,6 +86,12 @@ const WatercolorLetterPage = () => {
     const bgConfig = LetterProducts.backgrounds.watercolor;
     const basePrice = bgConfig.pricing[font] * pages;
     return basePrice;
+  };
+
+  // Get original price (for discount display)
+  const getOriginalPrice = () => {
+    const basePrice = font === 'Normal' ? 150 : 180; // Original higher prices
+    return basePrice * pages;
   };
 
   // Effect: When text or font changes
@@ -120,7 +131,13 @@ const WatercolorLetterPage = () => {
     }
   }, [font]);
 
-  // Handle add to cart
+  // Format occasion name for display
+  const formatOccasionName = (occasionKey) => {
+    if (!occasionKey) return 'Not selected';
+    return occasionKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+  };
+
+  // Enhanced Add to cart functionality with proper cart integration
   const handleAddToCart = () => {
     try {
       if (!color) {
@@ -150,13 +167,114 @@ const WatercolorLetterPage = () => {
         return;
       }
 
-      const product = LetterProducts.createLetterProduct(config);
-      console.log('Adding watercolor letter to cart:', product);
-      alert('Watercolor Letter added to cart successfully!');
-      setErrors({});
+      setIsAddingToCart(true);
+
+      // Create standardized product object for cart with comprehensive specifications
+      const cartProduct = {
+        id: 'watercolor-letter',
+        name: 'Watercolor Letter',
+        category: 'Letters',
+        price: getPrice(),
+        totalPrice: getPrice(),
+        basePrice: LetterProducts.backgrounds.watercolor.pricing[font],
+        quantity: 1,
+        specifications: {
+          background: 'Watercolor',
+          font: font,
+          fontStyle: font === 'Calligraphy' ? 'Italic Serif' : 'Sans-serif',
+          color: color,
+          colorTheme: `${color} watercolor theme`,
+          messageType: type === 'custom' ? 'Custom Message' : 'Occasion Template',
+          occasion: type === 'occasion' ? formatOccasionName(selectedOccasion) : 'Custom',
+          pages: pages,
+          pagesText: `${pages} page${pages > 1 ? 's' : ''}`,
+          wordCount: wordCount,
+          wordsPerPage: LetterProducts.getWordsPerPage(font),
+          wordStatus: wordStatus === 'good' ? 'Optimal' : wordStatus === 'warning' ? 'Acceptable' : 'Over limit',
+          pricePerPage: `₹${LetterProducts.backgrounds.watercolor.pricing[font]} per page`,
+          message: text.trim() ? `${text.substring(0, 100)}${text.length > 100 ? '...' : ''}` : 'No message',
+          fullMessage: text.trim() || 'No message provided'
+        },
+        image: 'src/Products/Letters/Images/Watercolor.png', // Adjust path as needed
+        tags: ['Watercolor', 'Letter', 'Custom', 'Personalized', font],
+        rating: 4.8,
+        reviews: 127,
+        deliveryTime: '5-7 days'
+      };
+
+      // Add to cart using context
+      addToCart(cartProduct);
+      
+      // Show success feedback
+      setTimeout(() => {
+        setIsAddingToCart(false);
+        alert(`Successfully added Watercolor Letter (${pages} page${pages > 1 ? 's' : ''}, ${color} theme) to cart!`);
+        setErrors({});
+      }, 500);
       
     } catch (error) {
+      setIsAddingToCart(false);
       setErrors({ general: error.message });
+    }
+  };
+
+  const handleBuyNow = () => {
+    if (!color) {
+      setErrors({ color: 'Please select a color for your watercolor letter' });
+      return;
+    }
+
+    if (!text.trim()) {
+      setErrors({ general: 'Please enter your message' });
+      return;
+    }
+
+    const wordsPerPage = LetterProducts.getWordsPerPage(font);
+    if (wordCount > wordsPerPage * pages) {
+      setErrors({ words: `Text exceeds ${wordsPerPage * pages} words limit for ${pages} page(s)` });
+      return;
+    }
+
+    // First add to cart, then navigate to cart page
+    const cartProduct = {
+      id: 'watercolor-letter',
+      name: 'Watercolor Letter',
+      category: 'Letters',
+      price: getPrice(),
+      totalPrice: getPrice(),
+      basePrice: LetterProducts.backgrounds.watercolor.pricing[font],
+      quantity: 1,
+      specifications: {
+        background: 'Watercolor',
+        font: font,
+        fontStyle: font === 'Calligraphy' ? 'Italic Serif' : 'Sans-serif',
+        color: color,
+        colorTheme: `${color} watercolor theme`,
+        messageType: type === 'custom' ? 'Custom Message' : 'Occasion Template',
+        occasion: type === 'occasion' ? formatOccasionName(selectedOccasion) : 'Custom',
+        pages: pages,
+        pagesText: `${pages} page${pages > 1 ? 's' : ''}`,
+        wordCount: wordCount,
+        wordsPerPage: LetterProducts.getWordsPerPage(font),
+        wordStatus: wordStatus === 'good' ? 'Optimal' : wordStatus === 'warning' ? 'Acceptable' : 'Over limit',
+        pricePerPage: `₹${LetterProducts.backgrounds.watercolor.pricing[font]} per page`,
+        message: text.trim() ? `${text.substring(0, 100)}${text.length > 100 ? '...' : ''}` : 'No message',
+        fullMessage: text.trim() || 'No message provided'
+      },
+      image: 'src/Products/Letters/Images/Watercolor.png',
+      tags: ['Watercolor', 'Letter', 'Custom', 'Personalized', font],
+      rating: 4.8,
+      reviews: 127,
+      deliveryTime: '5-7 days'
+    };
+
+    addToCart(cartProduct);
+    
+    // Navigate to cart page if onNavigate function is available
+    if (onNavigate) {
+      onNavigate('cart');
+    } else {
+      alert('Added Watercolor Letter to cart! Please go to cart to checkout.');
     }
   };
 
@@ -198,10 +316,10 @@ const WatercolorLetterPage = () => {
   // Styles object
   const styles = {
     page: {
-        width: '100vw',
+      width: '100vw',
       minHeight: '100vh',
       margin: '0',
-      padding: '0',
+      padding: '2rem',
       position: 'relative',
       left: '50%',
       right: '50%',
@@ -212,10 +330,48 @@ const WatercolorLetterPage = () => {
       backgroundAttachment: 'fixed',
       boxSizing: 'border-box'
     },
+    backButton: {
+      position: 'absolute',
+      top: '20px',
+      left: '20px',
+      background: 'rgba(255, 255, 255, 0.9)',
+      border: 'none',
+      borderRadius: '12px',
+      padding: '12px 20px',
+      cursor: 'pointer',
+      fontWeight: '600',
+      color: '#1e293b',
+      backdropFilter: 'blur(10px)',
+      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+      transition: 'all 0.3s ease',
+      zIndex: '10'
+    },
+    cartIndicator: {
+      position: 'absolute',
+      top: '20px',
+      right: '20px',
+      background: 'rgba(255, 255, 255, 0.9)',
+      border: 'none',
+      borderRadius: '12px',
+      padding: '12px 20px',
+      fontWeight: '600',
+      color: '#1e293b',
+      backdropFilter: 'blur(10px)',
+      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      zIndex: '10',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease'
+    },
     breadcrumb: {
       fontSize: '14px',
       color: '#6b7280',
-      marginBottom: '24px'
+      marginBottom: '24px',
+      maxWidth: '1400px',
+      margin: '0 auto 24px',
+      paddingTop: '60px'
     },
     breadcrumbLink: {
       color: '#3b82f6',
@@ -228,7 +384,9 @@ const WatercolorLetterPage = () => {
       background: 'white',
       borderRadius: '24px',
       boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-      padding: '32px'
+      padding: '32px',
+      maxWidth: '1400px',
+      margin: '0 auto'
     },
     leftSection: {
       display: 'flex',
@@ -412,12 +570,31 @@ const WatercolorLetterPage = () => {
     pricing: {
       display: 'flex',
       alignItems: 'center',
-      gap: '16px'
+      gap: '16px',
+      padding: '1.5rem 0',
+      borderTop: '1px solid rgba(226, 232, 240, 0.5)',
+      borderBottom: '1px solid rgba(226, 232, 240, 0.5)'
     },
     currentPrice: {
       fontSize: '32px',
       fontWeight: '700',
       color: '#111827'
+    },
+    originalPrice: {
+      fontSize: '20px',
+      color: '#94a3b8',
+      textDecoration: 'line-through',
+      fontWeight: '500'
+    },
+    discountBadge: {
+      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+      color: 'white',
+      padding: '0.4rem 0.8rem',
+      borderRadius: '8px',
+      fontSize: '0.8rem',
+      fontWeight: '700',
+      letterSpacing: '0.025em',
+      boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
     },
     priceDetail: {
       fontSize: '14px',
@@ -689,7 +866,11 @@ const WatercolorLetterPage = () => {
       fontSize: '18px',
       transition: 'all 0.2s',
       border: 'none',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px'
     },
     addToCartEnabled: {
       background: '#3b82f6',
@@ -713,6 +894,14 @@ const WatercolorLetterPage = () => {
       cursor: 'pointer',
       transition: 'background 0.2s',
       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+    },
+    loadingSpinner: {
+      width: '16px',
+      height: '16px',
+      border: '2px solid rgba(255, 255, 255, 0.3)',
+      borderTop: '2px solid white',
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite'
     },
     infoSection: {
       background: 'linear-gradient(90deg, rgb(239 246 255), rgb(250 245 255))',
@@ -750,10 +939,54 @@ const WatercolorLetterPage = () => {
     styles.typeGrid.gridTemplateColumns = '1fr';
     styles.occasionGrid.gridTemplateColumns = '1fr';
     styles.infoGrid.gridTemplateColumns = '1fr';
+    styles.page.padding = '1rem';
   }
+
+  // Validation function
+  const isFormValid = () => {
+    return color && text.trim() && wordStatus !== 'error';
+  };
 
   return (
     <div style={styles.page}>
+      {/* Back Button */}
+      {onBack && (
+        <button 
+          style={styles.backButton}
+          onClick={onBack}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.15)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+          }}
+        >
+          ← Back to Products
+        </button>
+      )}
+
+      {/* Cart Indicator */}
+      <div 
+        style={styles.cartIndicator}
+        onClick={onNavigate ? () => onNavigate('cart') : undefined}
+        onMouseEnter={(e) => {
+          if (onNavigate) {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.15)';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (onNavigate) {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+          }
+        }}
+      >
+        🛒 Cart ({cartCount})
+      </div>
+
       {/* Breadcrumb */}
       <div style={styles.breadcrumb}>
         <span>Home</span> / <span>Letters</span> / <span style={styles.breadcrumbLink}>Watercolor Letters</span>
@@ -906,8 +1139,9 @@ const WatercolorLetterPage = () => {
             </div>
             <div style={styles.pricing}>
               <span style={styles.currentPrice}>₹{getPrice()}</span>
-              <span style={styles.priceDetail}>
-                ₹{LetterProducts.backgrounds.watercolor.pricing[font]} × {pages} page{pages > 1 ? 's' : ''}
+              <span style={styles.originalPrice}>₹{getOriginalPrice()}</span>
+              <span style={styles.discountBadge}>
+                {Math.round((1 - getPrice() / getOriginalPrice()) * 100)}% OFF
               </span>
             </div>
           </div>
@@ -1151,18 +1385,35 @@ const WatercolorLetterPage = () => {
             <button 
               style={{
                 ...styles.addToCartBtn,
-                ...(wordStatus === 'error' || !text.trim() || !color
+                ...(!isFormValid() || isAddingToCart
                   ? styles.addToCartDisabled
                   : styles.addToCartEnabled)
               }}
               onClick={handleAddToCart}
-              disabled={wordStatus === 'error' || !text.trim() || !color}
+              disabled={!isFormValid() || isAddingToCart}
             >
-              Add to Cart - ₹{getPrice()}
+              {isAddingToCart ? (
+                <>
+                  <div style={styles.loadingSpinner} />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  🛒 Add to Cart - ₹{getPrice()}
+                </>
+              )}
             </button>
             
-            <button style={styles.buyNowBtn}>
-              Buy Now
+            <button 
+              style={{
+                ...styles.buyNowBtn,
+                opacity: !isFormValid() ? 0.6 : 1,
+                cursor: !isFormValid() ? 'not-allowed' : 'pointer'
+              }}
+              onClick={handleBuyNow}
+              disabled={!isFormValid()}
+            >
+              ⚡ Buy Now
             </button>
           </div>
 
@@ -1189,6 +1440,14 @@ const WatercolorLetterPage = () => {
           </div>
         </div>
       </div>
+
+      {/* CSS Animations */}
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };

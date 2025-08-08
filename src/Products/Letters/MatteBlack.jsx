@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useCart } from '../../Cart/CartPage.jsx'; // Adjust path based on your folder structure
 
 // Letter Products Logic Class
 class LetterProducts {
@@ -53,7 +54,7 @@ class LetterProducts {
   }
 }
 
-const MatteBlackLetterPage = () => {
+const MatteBlackLetterPage = ({ onBack, onNavigate }) => {
   // State variables
   const [font, setFont] = useState('Normal');
   const [type, setType] = useState('custom');
@@ -64,8 +65,12 @@ const MatteBlackLetterPage = () => {
   const [wordStatus, setWordStatus] = useState('good');
   const [showPreview, setShowPreview] = useState(false);
   const [errors, setErrors] = useState({});
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const textareaRef = useRef(null);
+
+  // Get cart functions from context
+  const { addToCart, cartCount } = useCart();
 
   // Helper function to count words
   const countWords = (text) => {
@@ -77,6 +82,12 @@ const MatteBlackLetterPage = () => {
   const getPrice = () => {
     const bgConfig = LetterProducts.backgrounds.matteBlack;
     const basePrice = bgConfig.pricing[font];
+    return basePrice * pages;
+  };
+
+  // Get original price (for discount display if needed)
+  const getOriginalPrice = () => {
+    const basePrice = 200; // Original higher price
     return basePrice * pages;
   };
 
@@ -107,7 +118,13 @@ const MatteBlackLetterPage = () => {
     }
   }, [type, selectedOccasion]);
 
-  // Handle add to cart
+  // Format occasion name for display
+  const formatOccasionName = (occasionKey) => {
+    if (!occasionKey) return 'Not selected';
+    return occasionKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+  };
+
+  // Enhanced Add to cart functionality with proper cart integration
   const handleAddToCart = () => {
     try {
       const config = {
@@ -131,13 +148,115 @@ const MatteBlackLetterPage = () => {
         return;
       }
 
-      const product = LetterProducts.createLetterProduct(config);
-      console.log('Adding matte black letter to cart:', product);
-      alert('Matte Black Letter added to cart successfully!');
-      setErrors({});
+      setIsAddingToCart(true);
+
+      // Create standardized product object for cart with comprehensive specifications
+      const cartProduct = {
+        id: 'matte-black-letter',
+        name: 'Matte Black Letter',
+        category: 'Letters',
+        price: getPrice(),
+        totalPrice: getPrice(),
+        basePrice: LetterProducts.backgrounds.matteBlack.pricing[font],
+        quantity: 1,
+        specifications: {
+          background: 'Matte Black',
+          font: font,
+          fontStyle: 'Modern Sans-serif',
+          style: 'Sophisticated matte finish',
+          specialEffects: 'Premium matte black paper with sleek modern aesthetic',
+          messageType: type === 'custom' ? 'Custom Message' : 'Occasion Template',
+          occasion: type === 'occasion' ? formatOccasionName(selectedOccasion) : 'Custom',
+          pages: pages,
+          pagesText: `${pages} page${pages > 1 ? 's' : ''}`,
+          wordCount: wordCount,
+          wordsPerPage: LetterProducts.getWordsPerPage(font),
+          wordStatus: wordStatus === 'good' ? 'Optimal' : wordStatus === 'warning' ? 'Acceptable' : 'Over limit',
+          pricePerPage: `₹${LetterProducts.backgrounds.matteBlack.pricing[font]} per page`,
+          message: text.trim() ? `${text.substring(0, 100)}${text.length > 100 ? '...' : ''}` : 'No message',
+          fullMessage: text.trim() || 'No message provided',
+          paperType: 'Premium matte black paper',
+          finish: 'Sophisticated matte finish',
+          design: 'Sleek modern aesthetic'
+        },
+        image: 'src/Products/Letters/Images/MatteBlack.png', // Adjust path as needed
+        tags: ['Matte Black', 'Letter', 'Custom', 'Personalized', 'Modern', 'Sophisticated'],
+        rating: 4.8,
+        reviews: 89,
+        deliveryTime: '5-7 days'
+      };
+
+      // Add to cart using context
+      addToCart(cartProduct);
+      
+      // Show success feedback
+      setTimeout(() => {
+        setIsAddingToCart(false);
+        alert(`Successfully added Matte Black Letter (${pages} page${pages > 1 ? 's' : ''}) to cart!`);
+        setErrors({});
+      }, 500);
       
     } catch (error) {
+      setIsAddingToCart(false);
       setErrors({ general: error.message });
+    }
+  };
+
+  const handleBuyNow = () => {
+    if (!text.trim()) {
+      setErrors({ general: 'Please enter your message' });
+      return;
+    }
+
+    const wordsPerPage = LetterProducts.getWordsPerPage(font);
+    if (wordCount > wordsPerPage * pages) {
+      setErrors({ words: `Text exceeds ${wordsPerPage * pages} words limit for ${pages} page(s)` });
+      return;
+    }
+
+    // First add to cart, then navigate to cart page
+    const cartProduct = {
+      id: 'matte-black-letter',
+      name: 'Matte Black Letter',
+      category: 'Letters',
+      price: getPrice(),
+      totalPrice: getPrice(),
+      basePrice: LetterProducts.backgrounds.matteBlack.pricing[font],
+      quantity: 1,
+      specifications: {
+        background: 'Matte Black',
+        font: font,
+        fontStyle: 'Modern Sans-serif',
+        style: 'Sophisticated matte finish',
+        specialEffects: 'Premium matte black paper with sleek modern aesthetic',
+        messageType: type === 'custom' ? 'Custom Message' : 'Occasion Template',
+        occasion: type === 'occasion' ? formatOccasionName(selectedOccasion) : 'Custom',
+        pages: pages,
+        pagesText: `${pages} page${pages > 1 ? 's' : ''}`,
+        wordCount: wordCount,
+        wordsPerPage: LetterProducts.getWordsPerPage(font),
+        wordStatus: wordStatus === 'good' ? 'Optimal' : wordStatus === 'warning' ? 'Acceptable' : 'Over limit',
+        pricePerPage: `₹${LetterProducts.backgrounds.matteBlack.pricing[font]} per page`,
+        message: text.trim() ? `${text.substring(0, 100)}${text.length > 100 ? '...' : ''}` : 'No message',
+        fullMessage: text.trim() || 'No message provided',
+        paperType: 'Premium matte black paper',
+        finish: 'Sophisticated matte finish',
+        design: 'Sleek modern aesthetic'
+      },
+      image: 'src/Products/Letters/Images/MatteBlack.png',
+      tags: ['Matte Black', 'Letter', 'Custom', 'Personalized', 'Modern', 'Sophisticated'],
+      rating: 4.8,
+      reviews: 89,
+      deliveryTime: '5-7 days'
+    };
+
+    addToCart(cartProduct);
+    
+    // Navigate to cart page if onNavigate function is available
+    if (onNavigate) {
+      onNavigate('cart');
+    } else {
+      alert('Added Matte Black Letter to cart! Please go to cart to checkout.');
     }
   };
 
@@ -163,13 +282,18 @@ const MatteBlackLetterPage = () => {
     return `Perfect word count! Current: ${wordCount}`;
   };
 
+  // Validation function
+  const isFormValid = () => {
+    return text.trim() && wordStatus !== 'error';
+  };
+
   // Styles object
   const styles = {
     page: {
       width: '100vw',
       minHeight: '100vh',
       margin: '0',
-      padding: '0',
+      padding: '2rem',
       position: 'relative',
       left: '50%',
       right: '50%',
@@ -180,10 +304,48 @@ const MatteBlackLetterPage = () => {
       backgroundAttachment: 'fixed',
       boxSizing: 'border-box'
     },
+    backButton: {
+      position: 'absolute',
+      top: '20px',
+      left: '20px',
+      background: 'rgba(255, 255, 255, 0.9)',
+      border: 'none',
+      borderRadius: '12px',
+      padding: '12px 20px',
+      cursor: 'pointer',
+      fontWeight: '600',
+      color: '#1e293b',
+      backdropFilter: 'blur(10px)',
+      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+      transition: 'all 0.3s ease',
+      zIndex: '10'
+    },
+    cartIndicator: {
+      position: 'absolute',
+      top: '20px',
+      right: '20px',
+      background: 'rgba(255, 255, 255, 0.9)',
+      border: 'none',
+      borderRadius: '12px',
+      padding: '12px 20px',
+      fontWeight: '600',
+      color: '#1e293b',
+      backdropFilter: 'blur(10px)',
+      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      zIndex: '10',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease'
+    },
     breadcrumb: {
       fontSize: '14px',
       color: '#9ca3af',
-      marginBottom: '24px'
+      marginBottom: '24px',
+      maxWidth: '1400px',
+      margin: '0 auto 24px',
+      paddingTop: '60px'
     },
     breadcrumbLink: {
       color: '#ffffff',
@@ -197,7 +359,9 @@ const MatteBlackLetterPage = () => {
       borderRadius: '24px',
       boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
       padding: '32px',
-      border: '1px solid #333'
+      border: '1px solid #333',
+      maxWidth: '1400px',
+      margin: '0 auto'
     },
     leftSection: {
       display: 'flex',
@@ -378,12 +542,31 @@ const MatteBlackLetterPage = () => {
     pricing: {
       display: 'flex',
       alignItems: 'center',
-      gap: '16px'
+      gap: '16px',
+      padding: '1.5rem 0',
+      borderTop: '1px solid rgba(51, 51, 51, 0.5)',
+      borderBottom: '1px solid rgba(51, 51, 51, 0.5)'
     },
     currentPrice: {
       fontSize: '32px',
       fontWeight: '700',
       color: '#ffffff'
+    },
+    originalPrice: {
+      fontSize: '20px',
+      color: '#6b7280',
+      textDecoration: 'line-through',
+      fontWeight: '500'
+    },
+    discountBadge: {
+      background: 'linear-gradient(135deg, #ffffff, #e5e7eb)',
+      color: '#000000',
+      padding: '0.4rem 0.8rem',
+      borderRadius: '8px',
+      fontSize: '0.8rem',
+      fontWeight: '700',
+      letterSpacing: '0.025em',
+      boxShadow: '0 4px 12px rgba(255, 255, 255, 0.3)'
     },
     priceDetail: {
       fontSize: '14px',
@@ -626,7 +809,11 @@ const MatteBlackLetterPage = () => {
       fontSize: '18px',
       transition: 'all 0.2s',
       border: 'none',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px'
     },
     addToCartEnabled: {
       background: '#ffffff',
@@ -650,6 +837,14 @@ const MatteBlackLetterPage = () => {
       cursor: 'pointer',
       transition: 'background 0.2s',
       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)'
+    },
+    loadingSpinner: {
+      width: '16px',
+      height: '16px',
+      border: '2px solid rgba(255, 255, 255, 0.3)',
+      borderTop: '2px solid white',
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite'
     },
     infoSection: {
       background: 'linear-gradient(90deg, rgb(10, 10, 10), rgb(20, 20, 20))',
@@ -688,10 +883,49 @@ const MatteBlackLetterPage = () => {
     styles.typeGrid.gridTemplateColumns = '1fr';
     styles.occasionGrid.gridTemplateColumns = '1fr';
     styles.infoGrid.gridTemplateColumns = '1fr';
+    styles.page.padding = '1rem';
   }
 
   return (
     <div style={styles.page}>
+      {/* Back Button */}
+      {onBack && (
+        <button 
+          style={styles.backButton}
+          onClick={onBack}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.15)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+          }}
+        >
+          ← Back to Products
+        </button>
+      )}
+
+      {/* Cart Indicator */}
+      <div 
+        style={styles.cartIndicator}
+        onClick={onNavigate ? () => onNavigate('cart') : undefined}
+        onMouseEnter={(e) => {
+          if (onNavigate) {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.15)';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (onNavigate) {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+          }
+        }}
+      >
+        🛒 Cart ({cartCount})
+      </div>
+
       {/* Breadcrumb */}
       <div style={styles.breadcrumb}>
         <span>Home</span> / <span>Letters</span> / <span style={styles.breadcrumbLink}>Matte Black Letters</span>
@@ -766,38 +1000,23 @@ const MatteBlackLetterPage = () => {
           <div style={styles.featuresList}>
             <h3 style={styles.sectionTitle}>Features</h3>
             <ul style={styles.featuresUl}>
-              <li style={styles.featureItem}>
-                <div style={styles.featureIcon}>
-                  <svg style={styles.checkIcon} fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                  </svg>
-                </div>
-                <span style={styles.featureText}>Premium matte black paper</span>
-              </li>
-              <li style={styles.featureItem}>
-                <div style={styles.featureIcon}>
-                  <svg style={styles.checkIcon} fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                  </svg>
-                </div>
-                <span style={styles.featureText}>Sleek modern aesthetic design</span>
-              </li>
-              <li style={styles.featureItem}>
-                <div style={styles.featureIcon}>
-                  <svg style={styles.checkIcon} fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                  </svg>
-                </div>
-                <span style={styles.featureText}>Customizable message and content</span>
-              </li>
-              <li style={styles.featureItem}>
-                <div style={styles.featureIcon}>
-                  <svg style={styles.checkIcon} fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                  </svg>
-                </div>
-                <span style={styles.featureText}>Sophisticated matte finish</span>
-              </li>
+              {[
+                'Premium matte black paper',
+                'Sleek modern aesthetic design',
+                'Customizable message and content',
+                'Sophisticated matte finish',
+                'Professional presentation',
+                'High-quality materials'
+              ].map((feature, index) => (
+                <li key={index} style={styles.featureItem}>
+                  <div style={styles.featureIcon}>
+                    <svg style={styles.checkIcon} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                  </div>
+                  <span style={styles.featureText}>{feature}</span>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
@@ -819,13 +1038,16 @@ const MatteBlackLetterPage = () => {
             {/* Pricing */}
             <div style={styles.pricing}>
               <span style={styles.currentPrice}>₹{getPrice()}</span>
-              <span style={styles.priceDetail}>for {pages} page{pages > 1 ? 's' : ''}</span>
+              <span style={styles.originalPrice}>₹{getOriginalPrice()}</span>
+              <span style={styles.discountBadge}>
+                {Math.round((1 - getPrice() / getOriginalPrice()) * 100)}% OFF
+              </span>
             </div>
           </div>
 
           {/* Font Selection */}
           <div style={styles.optionSection}>
-            <h3 style={styles.sectionTitle}>Font Style</h3>
+            <h3 style={styles.sectionTitle}>1. Font Style</h3>
             <div style={styles.fontGrid}>
               {LetterProducts.backgrounds.matteBlack.fonts.map((fontOption) => (
                 <div
@@ -840,7 +1062,7 @@ const MatteBlackLetterPage = () => {
                     Hello World
                   </div>
                   <div style={styles.fontName}>{fontOption}</div>
-                  <div style={styles.fontPrice}>₹{LetterProducts.backgrounds.matteBlack.pricing[fontOption]}</div>
+                  <div style={styles.fontPrice}>₹{LetterProducts.backgrounds.matteBlack.pricing[fontOption]}/page</div>
                   <div style={styles.fontWords}>{LetterProducts.getWordsPerPage(fontOption)} words/page</div>
                 </div>
               ))}
@@ -849,7 +1071,7 @@ const MatteBlackLetterPage = () => {
 
           {/* Letter Type Selection */}
           <div style={styles.optionSection}>
-            <h3 style={styles.sectionTitle}>Letter Type</h3>
+            <h3 style={styles.sectionTitle}>2. Letter Type</h3>
             <div style={styles.typeGrid}>
               <div
                 style={{
@@ -879,7 +1101,7 @@ const MatteBlackLetterPage = () => {
           {/* Occasion Selection (only if occasion type is selected) */}
           {type === 'occasion' && (
             <div style={styles.optionSection}>
-              <h3 style={styles.sectionTitle}>Choose Occasion</h3>
+              <h3 style={styles.sectionTitle}>3. Choose Occasion</h3>
               <div style={styles.occasionGrid}>
                 {Object.keys(LetterProducts.occasions).map((occasion) => (
                   <div
@@ -901,7 +1123,9 @@ const MatteBlackLetterPage = () => {
 
           {/* Message Input */}
           <div style={styles.optionSection}>
-            <h3 style={styles.sectionTitle}>Your Message</h3>
+            <h3 style={styles.sectionTitle}>
+              {type === 'occasion' ? '4' : '3'}. Your Message
+            </h3>
             <div style={styles.messageSection}>
               <div style={styles.textareaContainer}>
                 <textarea
@@ -910,7 +1134,7 @@ const MatteBlackLetterPage = () => {
                   onChange={(e) => setText(e.target.value)}
                   placeholder={type === 'custom' ? 
                     "Write your personalized message here..." : 
-                    "Select an occasion above to see the template message"
+                    "Select an occasion above to see the template message. You can edit it as needed."
                   }
                   style={{
                     ...styles.textarea,
@@ -925,7 +1149,7 @@ const MatteBlackLetterPage = () => {
                     background: `${getWordCountColor()}20`
                   }}
                 >
-                  {wordCount} words
+                  {wordCount}/{LetterProducts.getWordsPerPage(font) * pages} words
                 </div>
               </div>
               
@@ -973,11 +1197,13 @@ const MatteBlackLetterPage = () => {
           </div>
 
           {/* Error Messages */}
-          {(errors.general || errors.words) && (
+          {Object.keys(errors).length > 0 && (
             <div style={styles.errorSection}>
-              <div style={styles.errorText}>
-                {errors.general || errors.words}
-              </div>
+              {Object.values(errors).map((error, index) => (
+                <div key={index} style={styles.errorText}>
+                  {error}
+                </div>
+              ))}
             </div>
           )}
 
@@ -986,16 +1212,35 @@ const MatteBlackLetterPage = () => {
             <button
               style={{
                 ...styles.addToCartBtn,
-                ...(wordStatus === 'error' || !text.trim() ? styles.addToCartDisabled : styles.addToCartEnabled)
+                ...(!isFormValid() || isAddingToCart
+                  ? styles.addToCartDisabled
+                  : styles.addToCartEnabled)
               }}
               onClick={handleAddToCart}
-              disabled={wordStatus === 'error' || !text.trim()}
+              disabled={!isFormValid() || isAddingToCart}
             >
-              Add to Cart - ₹{getPrice()}
+              {isAddingToCart ? (
+                <>
+                  <div style={styles.loadingSpinner} />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  🛒 Add to Cart - ₹{getPrice()}
+                </>
+              )}
             </button>
             
-            <button style={styles.buyNowBtn}>
-              Buy Now
+            <button 
+              style={{
+                ...styles.buyNowBtn,
+                opacity: !isFormValid() ? 0.6 : 1,
+                cursor: !isFormValid() ? 'not-allowed' : 'pointer'
+              }}
+              onClick={handleBuyNow}
+              disabled={!isFormValid()}
+            >
+              ⚡ Buy Now
             </button>
           </div>
 
@@ -1023,6 +1268,14 @@ const MatteBlackLetterPage = () => {
           </div>
         </div>
       </div>
+
+      {/* CSS Animations */}
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };

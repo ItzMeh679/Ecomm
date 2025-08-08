@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { useCart } from '../../Cart/CartPage.jsx'; // Adjust path based on your folder structure
 
-const InspirationalBookmarkPage = () => {
+const InspirationalBookmarkPage = ({ onBack, onNavigate }) => {
   const [selectedDesign, setSelectedDesign] = useState(0);
-  const [selectedColor, setSelectedColor] = useState('blue');
+  const [selectedColor, setSelectedColor] = useState('blue');  
   const [quote, setQuote] = useState('');
   const [wordCount, setWordCount] = useState(0);
   const [wordError, setWordError] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [showPreview, setShowPreview] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+
+  // Get cart functions from context
+  const { addToCart, cartCount } = useCart();
 
   // Design options
   const designs = [
@@ -51,7 +56,7 @@ const InspirationalBookmarkPage = () => {
     setMousePosition({ x, y });
   };
 
-  // Add to cart functionality
+  // Enhanced Add to cart functionality with proper cart integration
   const handleAddToCart = () => {
     if (wordCount > 10) {
       setWordError(true);
@@ -59,25 +64,100 @@ const InspirationalBookmarkPage = () => {
       return;
     }
 
-    const orderSpecs = {
-      product: 'Inspirational Bookmark',
-      design: designs[selectedDesign].name,
-      color: colors.find(c => c.name === selectedColor).label,
-      quote: quote.trim(),
-      wordCount,
-      price: '₹99',
-      originalPrice: '₹149',
-      discount: '33% OFF',
-      timestamp: new Date().toISOString()
+    setIsAddingToCart(true);
+
+    // Create standardized product object for cart with specifications
+    const cartProduct = {
+      id: 'inspirational-bookmark',
+      name: 'Inspirational Bookmark',
+      category: 'Bookmarks',
+      price: 99,
+      totalPrice: 99,
+      basePrice: 99,
+      quantity: 1,
+      specifications: {
+        design: designs[selectedDesign].name,
+        color: colors.find(c => c.name === selectedColor).label,
+        quote: quote.trim() || 'No custom quote',
+        wordCount: wordCount
+      },
+      image: 'src/Products/Bookmarks/Images/Inspirational.png',
+      tags: ['Inspirational', 'Bookmark', 'Custom', 'Handmade'],
+      rating: 4.8,
+      reviews: 47,
+      deliveryTime: '3-5 days'
     };
 
-    console.log('Adding to cart with specifications:', orderSpecs);
-    // Here you would typically save to your state management or API
-    alert('Added to cart successfully!');
+    // Add to cart using context
+    addToCart(cartProduct);
+    
+    // Show success feedback
+    setTimeout(() => {
+      setIsAddingToCart(false);
+      alert('Successfully added Inspirational Bookmark to cart with your customizations!');
+    }, 500);
+  };
+
+  const handleBuyNow = () => {
+    if (wordCount > 10) {
+      setWordError(true);
+      setTimeout(() => setWordError(false), 600);
+      return;
+    }
+
+    // First add to cart, then navigate to cart page
+    const cartProduct = {
+      id: 'inspirational-bookmark',
+      name: 'Inspirational Bookmark',
+      category: 'Bookmarks',
+      price: 99,
+      totalPrice: 99,
+      basePrice: 99,
+      quantity: 1,
+      specifications: {
+        design: designs[selectedDesign].name,
+        color: colors.find(c => c.name === selectedColor).label,
+        quote: quote.trim() || 'No custom quote',
+        wordCount: wordCount
+      },
+      image: 'src/Products/Bookmarks/Images/Inspirational.png',
+      tags: ['Inspirational', 'Bookmark', 'Custom', 'Handmade'],
+      rating: 4.8,
+      reviews: 47,
+      deliveryTime: '3-5 days'
+    };
+
+    addToCart(cartProduct);
+    
+    // Navigate to cart page if onNavigate function is available
+    if (onNavigate) {
+      onNavigate('cart');
+    } else {
+      alert('Added Inspirational Bookmark to cart! Please go to cart to checkout.');
+    }
   };
 
   return (
     <div className="bookmark-product-page">
+      {/* Back Button */}
+      {onBack && (
+        <button 
+          className="back-button"
+          onClick={onBack}
+        >
+          ← Back to Products
+        </button>
+      )}
+
+      {/* Cart Indicator */}
+      <div 
+        className="cart-indicator"
+        onClick={onNavigate ? () => onNavigate('cart') : undefined}
+        style={{ cursor: onNavigate ? 'pointer' : 'default' }}
+      >
+        🛒 Cart ({cartCount})
+      </div>
+
       {/* Navigation breadcrumb */}
       <div className="breadcrumb">
         <span>Home</span> / <span>Bookmarks</span> / <span>Inspirational Bookmarks</span>
@@ -246,14 +326,25 @@ const InspirationalBookmarkPage = () => {
           {/* Action Buttons */}
           <div className="action-buttons">
             <button 
-              className={`add-to-cart-btn ${wordCount > 10 ? 'disabled' : ''}`}
+              className={`add-to-cart-btn ${(wordCount > 10 || isAddingToCart) ? 'disabled' : ''}`}
               onClick={handleAddToCart}
-              disabled={wordCount > 10}
+              disabled={wordCount > 10 || isAddingToCart}
             >
-              Add to Cart
+              {isAddingToCart ? (
+                <>
+                  <div className="loading-spinner" />
+                  Adding...
+                </>
+              ) : (
+                '🛒 Add to Cart'
+              )}
             </button>
-            <button className="buy-now-btn">
-              Buy Now
+            <button 
+              className="buy-now-btn"
+              onClick={handleBuyNow}
+              disabled={wordCount > 10 || isAddingToCart}
+            >
+              ⚡ Buy Now
             </button>
           </div>
 
@@ -293,6 +384,52 @@ const InspirationalBookmarkPage = () => {
           margin-left: -50vw;
           margin-right: -50vw;
           background-attachment: fixed;
+        }
+
+        .back-button {
+          position: absolute;
+          top: 20px;
+          left: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          border: none;
+          border-radius: 12px;
+          padding: 12px 20px;
+          cursor: pointer;
+          font-weight: 600;
+          color: #1e293b;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+          transition: all 0.3s ease;
+          z-index: 10;
+        }
+
+        .back-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .cart-indicator {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          border: none;
+          border-radius: 12px;
+          padding: 12px 20px;
+          font-weight: 600;
+          color: #1e293b;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          z-index: 10;
+          transition: all 0.3s ease;
+        }
+
+        .cart-indicator:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
         }
 
         .breadcrumb {
@@ -819,6 +956,10 @@ const InspirationalBookmarkPage = () => {
           cursor: pointer;
           transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
           letter-spacing: 0.025em;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
         }
 
         .add-to-cart-btn {
@@ -846,9 +987,31 @@ const InspirationalBookmarkPage = () => {
           box-shadow: 0 6px 20px rgba(15, 23, 42, 0.3);
         }
 
-        .buy-now-btn:hover {
+        .buy-now-btn:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 10px 32px rgba(15, 23, 42, 0.4);
+        }
+
+        .buy-now-btn:disabled {
+          background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+          cursor: not-allowed;
+          opacity: 0.6;
+          transform: none !important;
+          box-shadow: none;
+        }
+
+        .loading-spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-top: 2px solid white;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
 
         /* Additional Info */
@@ -886,10 +1049,6 @@ const InspirationalBookmarkPage = () => {
             gap: 2rem;
             padding: 2rem;
             margin: 0 1rem;
-          }
-
-          .product-details-section {
-            padding-left: 0;
           }
 
           .product-header h1 {
@@ -935,6 +1094,15 @@ const InspirationalBookmarkPage = () => {
 
           .product-image {
             height: 400px;
+          }
+
+          .back-button, .cart-indicator {
+            position: relative;
+            top: auto;
+            left: auto;
+            right: auto;
+            margin: 1rem;
+            display: inline-block;
           }
         }
 

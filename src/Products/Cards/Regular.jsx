@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useCart } from '../../Cart/CartPage.jsx'; // Adjust path based on your folder structure
 
-const RegularCardPage = () => {
+const RegularCardPage = ({ onBack, onNavigate }) => {
   const [message, setMessage] = useState('');
   const [wordCount, setWordCount] = useState(0);
   const [wordError, setWordError] = useState(false);
@@ -14,8 +15,12 @@ const RegularCardPage = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [imageError, setImageError] = useState('');
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   
   const fileInputRef = useRef(null);
+
+  // Get cart functions from context
+  const { addToCart, cartCount } = useCart();
 
   // Occasion options
   const occasions = [
@@ -114,7 +119,7 @@ const RegularCardPage = () => {
     return basePrice + calendarPrice;
   };
 
-  // Add to cart functionality
+  // Enhanced Add to cart functionality with proper cart integration
   const handleAddToCart = () => {
     if (wordCount > 30) {
       setWordError(true);
@@ -137,29 +142,125 @@ const RegularCardPage = () => {
       return;
     }
 
-    const orderSpecs = {
-      product: 'Regular Card',
-      message: message.trim(),
-      wordCount,
-      occasion: occasions.find(o => o.id === selectedOccasion)?.name,
-      date: selectedDate,
-      formattedDate: formatDate(selectedDate),
-      calendarAddon: calendarAddon,
-      hasImage: !!uploadedImage,
-      imageName: uploadedImage?.name,
-      imageSize: uploadedImage?.size,
-      price: `₹${getPrice()}`,
-      originalPrice: `₹${getOriginalPrice()}`,
-      discount: '33% OFF',
-      timestamp: new Date().toISOString()
+    setIsAddingToCart(true);
+
+    // Create standardized product object for cart with specifications
+    const cartProduct = {
+      id: 'regular-card',
+      name: 'Regular Card',
+      category: 'Cards',
+      price: getPrice(),
+      totalPrice: getPrice(),
+      basePrice: getPrice(),
+      quantity: 1,
+      specifications: {
+        message: message.trim() || 'No message',
+        wordCount: wordCount,
+        occasion: occasions.find(o => o.id === selectedOccasion)?.name || 'Not selected',
+        date: selectedDate,
+        formattedDate: formatDate(selectedDate),
+        calendarAddon: calendarAddon ? 'Yes' : 'No',
+        hasImage: !!uploadedImage,
+        imageName: uploadedImage?.name || 'No image',
+        imageSize: uploadedImage ? `${(uploadedImage.size / 1024 / 1024).toFixed(2)} MB` : 'N/A'
+      },
+      image: 'src/Products/Cards/Images/Regular.png',
+      tags: ['Regular', 'Card', 'Custom', 'Personalized'],
+      rating: 4.9,
+      reviews: 124,
+      deliveryTime: '3-5 days'
     };
 
-    console.log('Adding to cart with specifications:', orderSpecs);
-    alert('Added to cart successfully!');
+    // Add to cart using context
+    addToCart(cartProduct);
+    
+    // Show success feedback
+    setTimeout(() => {
+      setIsAddingToCart(false);
+      alert('Successfully added Regular Card to cart with your customizations!');
+    }, 500);
+  };
+
+  const handleBuyNow = () => {
+    if (wordCount > 30) {
+      setWordError(true);
+      setTimeout(() => setWordError(false), 600);
+      return;
+    }
+
+    if (!uploadedImage) {
+      alert('Please upload an image for your card');
+      return;
+    }
+
+    if (!selectedOccasion) {
+      alert('Please select an occasion');
+      return;
+    }
+
+    if (!selectedDate) {
+      alert('Please select a date');
+      return;
+    }
+
+    // First add to cart, then navigate to cart page
+    const cartProduct = {
+      id: 'regular-card',
+      name: 'Regular Card',
+      category: 'Cards',
+      price: getPrice(),
+      totalPrice: getPrice(),
+      basePrice: getPrice(),
+      quantity: 1,
+      specifications: {
+        message: message.trim() || 'No message',
+        wordCount: wordCount,
+        occasion: occasions.find(o => o.id === selectedOccasion)?.name || 'Not selected',
+        date: selectedDate,
+        formattedDate: formatDate(selectedDate),
+        calendarAddon: calendarAddon ? 'Yes' : 'No',
+        hasImage: !!uploadedImage,
+        imageName: uploadedImage?.name || 'No image',
+        imageSize: uploadedImage ? `${(uploadedImage.size / 1024 / 1024).toFixed(2)} MB` : 'N/A'
+      },
+      image: 'src/Products/Cards/Images/Regular.png',
+      tags: ['Regular', 'Card', 'Custom', 'Personalized'],
+      rating: 4.9,
+      reviews: 124,
+      deliveryTime: '3-5 days'
+    };
+
+    addToCart(cartProduct);
+    
+    // Navigate to cart page if onNavigate function is available
+    if (onNavigate) {
+      onNavigate('cart');
+    } else {
+      alert('Added Regular Card to cart! Please go to cart to checkout.');
+    }
   };
 
   return (
     <div className="card-product-page">
+      {/* Back Button */}
+      {onBack && (
+        <button 
+          className="back-button"
+          onClick={onBack}
+        >
+          ← Back to Products
+        </button>
+      )}
+
+      {/* Cart Indicator */}
+      <div 
+        className="cart-indicator"
+        onClick={onNavigate ? () => onNavigate('cart') : undefined}
+        style={{ cursor: onNavigate ? 'pointer' : 'default' }}
+      >
+        🛒 Cart ({cartCount})
+      </div>
+
       {/* Navigation breadcrumb */}
       <div className="breadcrumb">
         <span>Home</span> / <span>Cards</span> / <span>Regular Cards</span>
@@ -407,14 +508,25 @@ const RegularCardPage = () => {
           {/* Action Buttons */}
           <div className="action-buttons">
             <button 
-              className={`add-to-cart-btn ${wordCount > 30 || !uploadedImage || !selectedOccasion || !selectedDate ? 'disabled' : ''}`}
+              className={`add-to-cart-btn ${(wordCount > 30 || !uploadedImage || !selectedOccasion || !selectedDate || isAddingToCart) ? 'disabled' : ''}`}
               onClick={handleAddToCart}
-              disabled={wordCount > 30 || !uploadedImage || !selectedOccasion || !selectedDate}
+              disabled={wordCount > 30 || !uploadedImage || !selectedOccasion || !selectedDate || isAddingToCart}
             >
-              Add to Cart
+              {isAddingToCart ? (
+                <>
+                  <div className="loading-spinner" />
+                  Adding...
+                </>
+              ) : (
+                '🛒 Add to Cart'
+              )}
             </button>
-            <button className="buy-now-btn">
-              Buy Now
+            <button 
+              className="buy-now-btn"
+              onClick={handleBuyNow}
+              disabled={wordCount > 30 || !uploadedImage || !selectedOccasion || !selectedDate || isAddingToCart}
+            >
+              ⚡ Buy Now
             </button>
           </div>
 
@@ -458,6 +570,52 @@ const RegularCardPage = () => {
           margin-left: -50vw;
           margin-right: -50vw;
           background-attachment: fixed;
+        }
+
+        .back-button {
+          position: absolute;
+          top: 20px;
+          left: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          border: none;
+          border-radius: 12px;
+          padding: 12px 20px;
+          cursor: pointer;
+          font-weight: 600;
+          color: #1e293b;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+          transition: all 0.3s ease;
+          z-index: 10;
+        }
+
+        .back-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .cart-indicator {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          border: none;
+          border-radius: 12px;
+          padding: 12px 20px;
+          font-weight: 600;
+          color: #1e293b;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          z-index: 10;
+          transition: all 0.3s ease;
+        }
+
+        .cart-indicator:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
         }
 
         .breadcrumb {
@@ -1130,6 +1288,10 @@ const RegularCardPage = () => {
           cursor: pointer;
           transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
           letter-spacing: 0.025em;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
         }
 
         .add-to-cart-btn {
@@ -1155,9 +1317,29 @@ const RegularCardPage = () => {
           box-shadow: 0 6px 20px rgba(5, 150, 105, 0.3);
         }
 
-        .buy-now-btn:hover {
+        .buy-now-btn:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 10px 32px rgba(5, 150, 105, 0.4);
+        }
+
+        .buy-now-btn:disabled {
+          background: #94a3b8;
+          cursor: not-allowed;
+          opacity: 0.6;
+        }
+
+        .loading-spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-top: 2px solid white;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
 
         /* Additional Info */
@@ -1243,6 +1425,15 @@ const RegularCardPage = () => {
 
           .customization-section {
             padding: 1rem;
+          }
+
+          .back-button, .cart-indicator {
+            position: relative;
+            top: auto;
+            left: auto;
+            right: auto;
+            margin: 1rem;
+            display: inline-block;
           }
         }
 

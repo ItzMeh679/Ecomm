@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
+import { useCart } from '../../Cart/CartPage.jsx'; // Adjust path based on your folder structure
 
-const FloralBookmarksPage = () => {
+const FloralBookmarksPage = ({ onBack, onNavigate }) => {
   const [selectedDesign, setSelectedDesign] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [showPreview, setShowPreview] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+
+  // Get cart functions from context
+  const { addToCart, cartCount } = useCart();
 
   // Floral design options
   const floralDesigns = [
@@ -74,24 +79,94 @@ const FloralBookmarksPage = () => {
     setMousePosition({ x, y });
   };
 
-  // Add to cart functionality
+  // Enhanced Add to cart functionality with proper cart integration
   const handleAddToCart = () => {
-    const orderSpecs = {
-      product: 'Floral Bookmark',
-      design: floralDesigns[selectedDesign].name,
-      pattern: floralDesigns[selectedDesign].pattern,
-      price: '₹89',
-      originalPrice: '₹129',
-      discount: '31% OFF',
-      timestamp: new Date().toISOString()
+    setIsAddingToCart(true);
+
+    // Create standardized product object for cart with specifications
+    const cartProduct = {
+      id: 'floral-bookmark',
+      name: 'Floral Bookmark',
+      category: 'Bookmarks',
+      price: 89,
+      totalPrice: 89,
+      basePrice: 89,
+      quantity: 1,
+      specifications: {
+        design: floralDesigns[selectedDesign].name,
+        pattern: floralDesigns[selectedDesign].pattern,
+        description: floralDesigns[selectedDesign].description
+      },
+      image: 'src/Products/Bookmarks/Images/Floral.png',
+      tags: ['Floral', 'Bookmark', 'Nature', 'Handmade'],
+      rating: 4.9,
+      reviews: 62,
+      deliveryTime: '3-5 days'
     };
 
-    console.log('Adding to cart with specifications:', orderSpecs);
-    alert('Added to cart successfully!');
+    // Add to cart using context
+    addToCart(cartProduct);
+    
+    // Show success feedback
+    setTimeout(() => {
+      setIsAddingToCart(false);
+      alert(`Successfully added ${floralDesigns[selectedDesign].name} Floral Bookmark to cart!`);
+    }, 500);
+  };
+
+  const handleBuyNow = () => {
+    // First add to cart, then navigate to cart page
+    const cartProduct = {
+      id: 'floral-bookmark',
+      name: 'Floral Bookmark',
+      category: 'Bookmarks',
+      price: 89,
+      totalPrice: 89,
+      basePrice: 89,
+      quantity: 1,
+      specifications: {
+        design: floralDesigns[selectedDesign].name,
+        pattern: floralDesigns[selectedDesign].pattern,
+        description: floralDesigns[selectedDesign].description
+      },
+      image: 'src/Products/Bookmarks/Images/Floral.png',
+      tags: ['Floral', 'Bookmark', 'Nature', 'Handmade'],
+      rating: 4.9,
+      reviews: 62,
+      deliveryTime: '3-5 days'
+    };
+
+    addToCart(cartProduct);
+    
+    // Navigate to cart page if onNavigate function is available
+    if (onNavigate) {
+      onNavigate('cart');
+    } else {
+      alert('Added Floral Bookmark to cart! Please go to cart to checkout.');
+    }
   };
 
   return (
     <div className="bookmark-product-page">
+      {/* Back Button */}
+      {onBack && (
+        <button 
+          className="back-button"
+          onClick={onBack}
+        >
+          ← Back to Products
+        </button>
+      )}
+
+      {/* Cart Indicator */}
+      <div 
+        className="cart-indicator"
+        onClick={onNavigate ? () => onNavigate('cart') : undefined}
+        style={{ cursor: onNavigate ? 'pointer' : 'default' }}
+      >
+        🛒 Cart ({cartCount})
+      </div>
+
       {/* Navigation breadcrumb */}
       <div className="breadcrumb">
         <span>Home</span> / <span>Bookmarks</span> / <span>Floral Bookmarks</span>
@@ -212,13 +287,25 @@ const FloralBookmarksPage = () => {
           {/* Action Buttons */}
           <div className="action-buttons">
             <button 
-              className="add-to-cart-btn"
+              className={`add-to-cart-btn ${isAddingToCart ? 'disabled' : ''}`}
               onClick={handleAddToCart}
+              disabled={isAddingToCart}
             >
-              Add to Cart
+              {isAddingToCart ? (
+                <>
+                  <div className="loading-spinner" />
+                  Adding...
+                </>
+              ) : (
+                '🛒 Add to Cart'
+              )}
             </button>
-            <button className="buy-now-btn">
-              Buy Now
+            <button 
+              className="buy-now-btn"
+              onClick={handleBuyNow}
+              disabled={isAddingToCart}
+            >
+              ⚡ Buy Now
             </button>
           </div>
 
@@ -258,6 +345,52 @@ const FloralBookmarksPage = () => {
           margin-left: -50vw;
           margin-right: -50vw;
           background-attachment: fixed;
+        }
+
+        .back-button {
+          position: absolute;
+          top: 20px;
+          left: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          border: none;
+          border-radius: 12px;
+          padding: 12px 20px;
+          cursor: pointer;
+          font-weight: 600;
+          color: #1e293b;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+          transition: all 0.3s ease;
+          z-index: 10;
+        }
+
+        .back-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .cart-indicator {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          background: rgba(255, 255, 255, 0.9);
+          border: none;
+          border-radius: 12px;
+          padding: 12px 20px;
+          font-weight: 600;
+          color: #1e293b;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          z-index: 10;
+          transition: all 0.3s ease;
+        }
+
+        .cart-indicator:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
         }
 
         .breadcrumb {
@@ -680,6 +813,10 @@ const FloralBookmarksPage = () => {
           cursor: pointer;
           transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
           letter-spacing: 0.025em;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
         }
 
         .add-to-cart-btn {
@@ -688,9 +825,17 @@ const FloralBookmarksPage = () => {
           box-shadow: 0 6px 20px rgba(236, 72, 153, 0.3);
         }
 
-        .add-to-cart-btn:hover {
+        .add-to-cart-btn:hover:not(.disabled) {
           transform: translateY(-2px);
           box-shadow: 0 10px 32px rgba(236, 72, 153, 0.4);
+        }
+
+        .add-to-cart-btn.disabled {
+          background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+          cursor: not-allowed;
+          opacity: 0.6;
+          transform: none !important;
+          box-shadow: none;
         }
 
         .buy-now-btn {
@@ -699,9 +844,31 @@ const FloralBookmarksPage = () => {
           box-shadow: 0 6px 20px rgba(15, 23, 42, 0.3);
         }
 
-        .buy-now-btn:hover {
+        .buy-now-btn:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 10px 32px rgba(15, 23, 42, 0.4);
+        }
+
+        .buy-now-btn:disabled {
+          background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+          cursor: not-allowed;
+          opacity: 0.6;
+          transform: none !important;
+          box-shadow: none;
+        }
+
+        .loading-spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-top: 2px solid white;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
 
         /* Additional Info */
@@ -780,6 +947,15 @@ const FloralBookmarksPage = () => {
 
           .product-image {
             height: 400px;
+          }
+
+          .back-button, .cart-indicator {
+            position: relative;
+            top: auto;
+            left: auto;
+            right: auto;
+            margin: 1rem;
+            display: inline-block;
           }
         }
 
